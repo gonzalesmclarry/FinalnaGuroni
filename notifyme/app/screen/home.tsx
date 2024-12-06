@@ -7,6 +7,8 @@ import AddReminder from './addreminder';
 import { collection, onSnapshot, query, where, getDocs, addDoc} from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { UserCredential } from 'firebase/auth';
+import CalendarScreen from './CalendarScreen';
+import CalendarModal from './CalendarScreen';
 
 
 const HomeScreen = () => {
@@ -19,25 +21,8 @@ const HomeScreen = () => {
   const [reminders, setReminders] = useState([]);
   const [isMoreOptionsExpanded, setIsMoreOptionsExpanded] = useState(false);
   const router = useRouter();
-
-
-  const handleStarReminder = async (reminder: { title: any; date: any; time: any; id?: string; categoryID?: any; }) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
-
-    try {
-      await addDoc(collection(db, 'star_reminder'), {
-        title: reminder.title,
-        date: reminder.date,
-        time: reminder.time,
-        categoryID: reminder.categoryID, // Ensure this is part of the reminder object
-        userID: currentUser.uid,
-      });
-      console.log("Reminder starred successfully!");
-    } catch (error) {
-      console.error("Error starring reminder:", error);
-    }
-  };
+  const [isCalendarVisible, setIsCalendarVisible] = useState(false);
+  const [selectedReminder, setSelectedReminder] = useState(null);
 
 
   useEffect(() => {
@@ -48,6 +33,9 @@ const HomeScreen = () => {
       collection(db, "reminders"),
       where("userID", "==", currentUser.uid)
     );
+
+
+
 
     // Add category filter if not showing 'All'
     if (activeTab !== 'All') {
@@ -75,6 +63,37 @@ const HomeScreen = () => {
 
     return () => unsubscribe();
   }, [activeTab]);
+
+
+
+  const handShowCalendar = () => {
+    setIsCalendarVisible(true);
+  };
+
+  const handleCloseCalendar = () => {
+    setIsCalendarVisible(false);
+  }
+
+  const handleStarReminder = async (reminder: { title: any; date: any; time: any; id?: string; categoryID?: any; }) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      await addDoc(collection(db, 'star_reminder'), {
+        title: reminder.title,
+        date: reminder.date,
+        time: reminder.time,
+        categoryID: reminder.categoryID, // Ensure this is part of the reminder object
+        userID: currentUser.uid,
+      });
+      console.log("Reminder starred successfully!");
+    } catch (error) {
+      console.error("Error starring reminder:", error);
+    }
+  };
+
+
+  
 
   const categories = [
     { name: 'All', count: 0 },
@@ -121,16 +140,20 @@ const HomeScreen = () => {
                   <TouchableOpacity style={styles.starButton} onPress={() => handleStarReminder(reminder)}>
                     <FontAwesome5 name="star" size={20} color="#ccc" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.calendarButton}>
+                  <TouchableOpacity style={styles.calendarButton} onPress={handShowCalendar}>
                     <FontAwesome5 name="calendar" size={20} color="#666" />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.deleteButton}>
                     <FontAwesome5 name="trash" size={20} color="#ff4444" />
                   </TouchableOpacity>
+
+                  <CalendarModal visible={isCalendarVisible} onClose={handleCloseCalendar} />
+
                 </View>
               </View>
             ))}
           </ScrollView>
+
         )}
       </>
     );

@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons'; // Import Material Icons
-import { getFirestore, collection, getDocs } from 'firebase/firestore'; // Import necessary Firestore functions
+import { getFirestore, collection, getDocs, query, where } from 'firebase/firestore'; // Import necessary Firestore functions
+import { getAuth } from 'firebase/auth'; // Import Firebase authentication functions
 
 interface Reminder {
   id: string;
   title: string;
   categoryID: string;
-  date: string,
+  date: string;
   time: string;
 }
 
@@ -20,11 +21,17 @@ const StarReminderScreen = () => {
     const fetchReminders = async () => {
       try {
         const db = getFirestore(); // Get Firestore instance
-        const snapshot = await getDocs(collection(db, 'star_reminder')); // Fetch data from Firestore
-        const fetchedReminders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Reminder[]; // Cast to Reminder[]
-        setReminders(fetchedReminders); // Update state with fetched reminders
+        const auth = getAuth(); // Get Auth instance
+        const user = auth.currentUser; // Get currently logged-in user
+
+        if (user) {
+          const remindersQuery = query(collection(db, 'star_reminder'), where('userID', '==', user.uid)); // Fetch user-specific data from Firestore
+          const snapshot = await getDocs(remindersQuery); // Execute query
+          const fetchedReminders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Reminder[]; // Cast to Reminder[]
+          setReminders(fetchedReminders); // Update state with fetched reminders
+        }
       } catch (error) {
-        console.error("Error fetching reminders: ", error); // Handle errors
+        console.error('Error fetching reminders: ', error); // Handle errors
       }
     };
 
@@ -68,8 +75,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     marginTop: 60,
     fontWeight: 'bold',
-    
-  
   },
   header: {
     fontSize: 24,

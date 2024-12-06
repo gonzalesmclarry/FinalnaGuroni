@@ -17,7 +17,7 @@ const CalendarScreen = () => {
           calendarBackground: '#A8D8E4',
           textSectionTitleColor: '#000',
           dayTextColor: '#000',
-          todayTextColor: '#000',
+          todayTextColor: 'red',
           selectedDayTextColor: '#fff',
           monthTextColor: '#000',
           textDisabledColor: '#666',
