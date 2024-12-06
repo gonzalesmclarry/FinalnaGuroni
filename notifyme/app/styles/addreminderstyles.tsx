@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   },
 
 
-
+  // ... existing styles ...
 
 
 });

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, Modal, FlatList, Image, Platform, Switch, GestureResponderEvent } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Animated, Modal, FlatList, Image, Platform, GestureResponderEvent } from 'react-native';
 import styles from '../styles/addreminderstyles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Audio } from 'expo-av';
-import { addDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { Alert } from 'react-native';
 
@@ -43,21 +43,11 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
   const [hour, setHour] = useState('00');
   const [minute, setMinute] = useState('00');
   const [isPM, setIsPM] = useState(false);
-  const [isReminderModalVisible, setIsReminderModalVisible] = useState(false);
-  const [isReminderOn, setIsReminderOn] = useState(false);
   const [selectedSound, setSelectedSound] = useState('Default');
   const [showSoundOptions, setShowSoundOptions] = useState(false);
   const [reminderTitle, setReminderTitle] = useState('');
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [userReminders, setUserReminders] = useState<Reminder[]>([]);
-  const builtInCategories = ['Work', 'Birthday', 'Occasion', 'Special'];
-  const [categories, setCategories] = useState<string[]>(builtInCategories);
+  const [categories, setCategories] = useState<string[]>(['Work', 'Birthday', 'Occasion', 'Special']);
 
-  const notificationSounds = [
-    { id: '1', name: 'Default', soundFile: 'default_sound' },
-    { id: '2', name: 'Bell', soundFile: 'bell_sound' },
-    { id: '3', name: 'Chime', soundFile: 'chime_sound' },
-  ];
 
   // Fetch categories from Firestore on component mount
   useEffect(() => {
@@ -71,7 +61,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
         const querySnapshot = await getDocs(q);
 
         const fetchedCategories = querySnapshot.docs.map(doc => doc.data().name);
-        setCategories(prevCategories => [...builtInCategories, ...fetchedCategories]);
+        setCategories(prevCategories => [...prevCategories, ...fetchedCategories]);
         console.log('Fetched Categories:', fetchedCategories);
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -302,7 +292,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
         categoryID: selectedCategory || 'default',
         date: selectedDate,
         reminderID: Math.random().toString(36).substr(2, 9),
-        reminderOn: isReminderOn ? "5" : "0",
+        reminderOn: "0", // Set to "0" since we are not using the reminder modal
         sound: selectedSound || "50",
         time: selectedTime,
         title: reminderTitle,
@@ -320,7 +310,6 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
       setSelectedCategory('');
       setSelectedDate('');
       setSelectedTime('');
-      setIsReminderOn(false);
       setSelectedSound('Default');
       toggleReminder();
       
@@ -540,7 +529,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
               {generateCalendarDates()}
             </View>
 
-            {/* Time and Reminder Inputs */}
+            {/* Time Inputs */}
             <View style={styles.inputsContainer}>
               <View style={styles.inputRow}>
                 <MaterialIcons name="access-time" size={20} color="#666" />
@@ -555,14 +544,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <View style={styles.inputRow}>
-                <MaterialIcons name="notifications" size={20} color="#666" />
-                <TouchableOpacity 
-                  onPress={() => setIsReminderModalVisible(true)}
-                >
-                  <Text style={styles.input}>Reminder</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Removed reminder input section */}
             </View>
 
             {/* Done Button */}
@@ -588,7 +570,6 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
 
       {!isExpanded && (
         <>
-         
           <TouchableOpacity 
             style={styles.addButton}
             onPress={toggleReminder}
@@ -599,74 +580,6 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
       )}
 
       <TimePickerModal />
-
-      <Modal
-        visible={isReminderModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setIsReminderModalVisible(false)}
-      >
-        <View style={styles.reminderModalContainer}>
-          <View style={styles.reminderModalContent}>
-            <View style={styles.reminderModalHeader}>
-              <Text style={styles.reminderModalTitle}>Reminder On</Text>
-              <Switch
-                value={isReminderOn}
-                onValueChange={setIsReminderOn}
-                trackColor={{ false: '#767577', true: '#81b0ff' }}
-                thumbColor={isReminderOn ? '#007AFF' : '#f4f3f4'}
-              />
-              <TouchableOpacity 
-                style={styles.reminderModalClose}
-                onPress={() => setIsReminderModalVisible(false)}
-              >
-                <Text style={styles.closeIcon}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity 
-              style={styles.soundSelector}
-              onPress={() => setShowSoundOptions(!showSoundOptions)}
-            >
-              <Text style={styles.soundText}>{selectedSound}</Text>
-              <Text style={styles.dropdownIcon}>▼</Text>
-            </TouchableOpacity>
-
-            {showSoundOptions && (
-              <View style={styles.soundOptionsContainer}>
-                {notificationSounds.map((sound) => (
-                  <TouchableOpacity
-                    key={sound.id}
-                    style={[
-                      styles.soundOption,
-                      selectedSound === sound.name && styles.selectedSoundOption
-                    ]}
-                    onPress={() => {
-                      setSelectedSound(sound.name);
-                      setShowSoundOptions(false);
-                      playSound(sound.soundFile);
-                    }}
-                  >
-                    <Text style={[
-                      styles.soundOptionText,
-                      selectedSound === sound.name && styles.selectedSoundOptionText
-                    ]}>
-                      {sound.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            <TouchableOpacity 
-              style={styles.reminderDoneButton}
-              onPress={() => setIsReminderModalVisible(false)}
-            >
-              <Text style={styles.reminderDoneText}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </>
   );
 };

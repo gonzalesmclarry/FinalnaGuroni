@@ -4,7 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import styles from '../styles/homestyles';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import AddReminder from './addreminder';
-import { collection, onSnapshot, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs, addDoc} from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { UserCredential } from 'firebase/auth';
 
@@ -19,6 +19,26 @@ const HomeScreen = () => {
   const [reminders, setReminders] = useState([]);
   const [isMoreOptionsExpanded, setIsMoreOptionsExpanded] = useState(false);
   const router = useRouter();
+
+
+  const handleStarReminder = async (reminder: { title: any; date: any; time: any; id?: string; categoryID?: any; }) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      await addDoc(collection(db, 'star_reminder'), {
+        title: reminder.title,
+        date: reminder.date,
+        time: reminder.time,
+        categoryID: reminder.categoryID, // Ensure this is part of the reminder object
+        userID: currentUser.uid,
+      });
+      console.log("Reminder starred successfully!");
+    } catch (error) {
+      console.error("Error starring reminder:", error);
+    }
+  };
+
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -98,7 +118,7 @@ const HomeScreen = () => {
                   <Text style={styles.reminderDateTime}>{reminder.date} {reminder.time}</Text>
                 </View>
                 <View style={styles.reminderActions}>
-                  <TouchableOpacity style={styles.starButton}>
+                  <TouchableOpacity style={styles.starButton} onPress={() => handleStarReminder(reminder)}>
                     <FontAwesome5 name="star" size={20} color="#ccc" />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.calendarButton}>
