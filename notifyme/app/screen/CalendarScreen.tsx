@@ -49,13 +49,13 @@ const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dim background
+    backgroundColor: 'rgba(0, 0, 0, 0.2)', // Dim background
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
     width: width * 0.8,
-    height: height * 0.6, // Adjust size to fit the calendar
+    height: height * 0.5, // Adjust size to fit the calendar
     backgroundColor: 'white',
     borderRadius: 10,
     overflow: 'hidden',

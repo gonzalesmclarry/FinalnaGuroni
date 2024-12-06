@@ -9,10 +9,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 20,
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
+
+  bellButton: {
+    position: 'absolute', // Position it absolutely
+    top: 90, // Adjust the top position as needed
+    right: 20, 
   },
+
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center', // Aligns items vertically centered
+    justifyContent: 'flex-end', // Aligns items to the right
+    padding: 10, // Add padding if needed
+  },
+
   logo: {
     width: 200, 
     height: 100, 
@@ -421,26 +431,24 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 
-
-  moreOptionsList: {
-    backgroundColor: '#C5DEE3', // Background color for the more options list
-    borderRadius: 8,
-    padding: 10,
-    elevation: 2, // Shadow effect for Android
-    shadowColor: '#000', // Shadow color for iOS
+  moreOptionsDropdown: {
+    position: 'absolute',
+    top: 90, // Adjust based on your layout
+    right: 0,
+    backgroundColor: '#A8D8E4',
+    borderRadius: 5,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
-
+    elevation: 5,
   },
-  moreOptionItem: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+  dropdownItem: {
+    padding: 10,
   },
-  moreOptionText: {
+  dropdownText: {
     fontSize: 16,
-    color: '#007BFF', // Color for the text
-    textAlign: 'center',
+    color: 'black',
   },
 
 });

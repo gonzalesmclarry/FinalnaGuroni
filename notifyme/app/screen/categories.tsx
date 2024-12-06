@@ -1,28 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons'; // Import Material Icons
+import { getFirestore, collection, query, getDocs } from 'firebase/firestore'; // Import Firestore
 
 type Category = {
     id: string;
     name: string;
-    count: number;
 };
 
 const categoriesData: Category[] = [
-    { id: '1', name: 'Work', count: 0 },
-    { id: '2', name: 'Birthday', count: 0 },
-    { id: '3', name: 'Occasion', count: 0 },
-    { id: '4', name: 'Special', count: 0 },
+    { id: '1', name: 'Work' },
+    { id: '2', name: 'Birthday' },
+    { id: '3', name: 'Occasion' },
+    { id: '4', name: 'Special' },
 ];
 
 const CategoriesScreen = () => {
     const navigation = useNavigation();
+    const [fetchedCategories, setFetchedCategories] = useState<Category[]>([]); // State for fetched categories
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const db = getFirestore(); // Get Firestore instance
+                const categoriesQuery = query(collection(db, 'categories')); // Fetch categories from Firestore
+                const snapshot = await getDocs(categoriesQuery); // Execute query
+                const categoriesFromFirestore = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Category[]; // Cast to Category[]
+                setFetchedCategories(categoriesFromFirestore); // Update state with fetched categories
+            } catch (error) {
+                console.error('Error fetching categories: ', error); // Handle errors
+            }
+        };
+
+        fetchCategories(); // Call the fetch function
+    }, []); // Empty dependency array to run once on mount
+
+    const combinedCategories = [...categoriesData, ...fetchedCategories]; // Combine built-in and fetched categories
 
     const renderCategory = ({ item }: { item: Category }) => (
         <View style={styles.categoryItem}>
             <Text style={styles.categoryName}>{item.name}</Text>
-            <Text style={styles.categoryCount}>{item.count}</Text>
+            <TouchableOpacity onPress={() => { /* Handle more options */ }} style={styles.moreOptionsButton}>
+                <MaterialIcons name="more-vert" size={24} color="black" />
+            </TouchableOpacity>
         </View>
     );
 
@@ -36,7 +57,7 @@ const CategoriesScreen = () => {
 
             <Text style={styles.title}>Categories</Text>
             <FlatList<Category>
-                data={categoriesData}
+                data={combinedCategories} // Use combined categories here
                 keyExtractor={(item) => item.id}
                 renderItem={renderCategory}
             />
@@ -90,8 +111,8 @@ const styles = StyleSheet.create({
     categoryName: {
         fontSize: 18,
     },
-    categoryCount: {
-        fontSize: 18,
+    moreOptionsButton: {
+        padding: 5, // Add some padding for better touch area
     },
     createButton: {
         position: 'absolute',

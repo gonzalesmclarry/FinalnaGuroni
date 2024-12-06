@@ -34,7 +34,7 @@ const CalendarScreen = () => {
       <View style={styles.bottomTabBar}>
         <Link href="/screen/home" style={styles.bottomTabButtonLeft}>
           <View style={styles.iconContainer}>
-            <Image source={require('../screen/images/bell.png')} style={styles.bottomTabIcon} />
+            <Image source={require('../screen/images/home.png')} style={styles.bottomTabIcon} />
             <Text style={styles.bottomTabText}>Reminders</Text>
           </View>
         </Link>

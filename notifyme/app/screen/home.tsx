@@ -6,8 +6,6 @@ import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import AddReminder from './addreminder';
 import { collection, onSnapshot, query, where, getDocs, addDoc} from 'firebase/firestore';
 import { auth, db } from '../../firebase';
-import { UserCredential } from 'firebase/auth';
-import CalendarScreen from './CalendarScreen';
 import CalendarModal from './CalendarScreen';
 
 
@@ -23,6 +21,7 @@ const HomeScreen = () => {
   const router = useRouter();
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
+  const [isMoreOptionsVisible, setIsMoreOptionsVisible] = useState(false);
 
 
   useEffect(() => {
@@ -107,6 +106,10 @@ const HomeScreen = () => {
     setIsSidebarVisible(!isSidebarVisible);
   };
 
+  const toggleMoreOptions = () => {
+    setIsMoreOptionsVisible(!isMoreOptionsVisible);
+  };
+
   const renderContent = () => {
     if (!hasReminders) {
       return (
@@ -186,6 +189,15 @@ const HomeScreen = () => {
     // Use the reminders data
   };
 
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      router.push('screen/login');
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Dim Background Overlay */}
@@ -195,6 +207,11 @@ const HomeScreen = () => {
       <View style={styles.logoContainer}>
         <Image source={require('./images/logo.png')} style={styles.logo} />
       </View>
+
+      {/* Add Notification Bell Icon at the top right */}
+      <TouchableOpacity style={styles.bellButton} onPress={() => console.log('Bell pressed')}>
+      <MaterialIcons name="notifications" size={24} color="black" />
+      </TouchableOpacity>
 
       {/* Menu Tabs */}
       <View style={styles.menuTabs}>
@@ -227,21 +244,21 @@ const HomeScreen = () => {
           ))}
         </ScrollView>
 
-        <TouchableOpacity style={styles.moreOptionsButton} onPress={() => setIsMoreOptionsExpanded(!isMoreOptionsExpanded)}>
+        <TouchableOpacity style={styles.moreOptionsButton} onPress={toggleMoreOptions}>
           <Image source={require('../screen/images/menu-vertical.png')} style={styles.moreOptionsIcon} />
         </TouchableOpacity>
-
-        {isMoreOptionsExpanded && (
-          <View style={styles.moreOptionsList}>
-          <TouchableOpacity
-            style={styles.moreOptionItem}
-            onPress={() => router.push('/screen/categories')} // Navigate to the Categories screen
-          >
-            <Text style={styles.moreOptionText}>See All Categories</Text>
-          </TouchableOpacity>
-          </View>
-        )}
       </View>
+
+      {isMoreOptionsVisible && (
+        <View style={styles.moreOptionsDropdown}>
+          <TouchableOpacity onPress={() => router.push('/screen/categories')} style={styles.dropdownItem}>
+            <Text style={styles.dropdownText}>See All Categories</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={styles.dropdownItem}>
+            <Text style={styles.dropdownText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Reminders Section */}
       <View style={styles.remindersContainer}>
@@ -263,7 +280,7 @@ const HomeScreen = () => {
       <View style={styles.bottomTabBar}>
         <Link href="/screen/home" style={styles.bottomTabButtonLeft}>
           <View style={styles.iconContainer}>
-            <Image source={require('./images/whitebell.png')} style={styles.bottomTabIcon} />
+            <Image source={require('./images/white-home.png')} style={styles.bottomTabIcon} />
             <Text style={styles.bottomTabText}>Reminders</Text>
           </View>
         </Link>
@@ -340,7 +357,9 @@ const HomeScreen = () => {
                 </TouchableOpacity>
 
                 {/* See All Categories Button */}
-                <TouchableOpacity style={styles.categoryItem}>
+                <TouchableOpacity style={styles.categoryItem} 
+                onPress={() => router.push('/screen/categories')}
+                >
                   <Text style={styles.categoryText}>See All Categories</Text>
                 </TouchableOpacity>
               </View>
