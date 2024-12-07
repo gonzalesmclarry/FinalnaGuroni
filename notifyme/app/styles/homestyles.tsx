@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 200, 
     height: 100, 
-    marginRight: 200,
+    marginRight: 170,
     marginTop: 20,
     marginBottom: 20,
   },
