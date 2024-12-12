@@ -246,18 +246,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
     </Modal>
   );
 
-  const playSound = async (soundFile: string) => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        soundFile === 'default_sound' ? require('../assets/sounds/default.mp3') :
-        soundFile === 'bell_sound' ? require('../assets/sounds/bell.mp3') :
-        require('../assets/sounds/chime.mp3')
-      );
-      await sound.playAsync();
-    } catch (error) {
-      console.log('Error playing sound:', error);
-    }
-  };
+  
 
   const handleSaveReminder = async () => {
     try {

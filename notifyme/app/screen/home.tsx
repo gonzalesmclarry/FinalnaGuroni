@@ -4,7 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import styles from '../styles/homestyles';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import AddReminder from './addreminder';
-import { collection, onSnapshot, query, where, getDocs, addDoc} from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import CalendarModal from './CalendarScreen';
 
@@ -24,6 +24,8 @@ const HomeScreen = () => {
   const [isMoreOptionsVisible, setIsMoreOptionsVisible] = useState(false);
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const [completedReminders, setCompletedReminders] = useState([]);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [reminderToDelete, setReminderToDelete] = useState(null);
 
 
   useEffect(() => {
@@ -137,7 +139,10 @@ const HomeScreen = () => {
                 id: string;
               }) => (
                 <View key={reminder.id} style={styles.reminderItem}>
-                  <TouchableOpacity style={styles.checkboxContainer}>
+                  <TouchableOpacity 
+                    style={styles.checkboxContainer} 
+                    onPress={() => handleCheckboxClick(reminder)}
+                  >
                     <View style={styles.checkbox} />
                   </TouchableOpacity>
                   <View style={styles.reminderTextContainer}>
@@ -244,6 +249,52 @@ const HomeScreen = () => {
       router.push('screen/login');
     } catch (error) {
       console.error("Error logging out:", error);
+    }
+  };
+
+  // Add useEffect to fetch completed reminders
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    const completedQuery = query(
+      collection(db, "completed"),
+      where("userID", "==", currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(completedQuery, (snapshot) => {
+      const completedList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCompletedReminders(completedList as any);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Add function to handle checkbox click
+  const handleCheckboxClick = async (reminder: any) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      // Add to completed_reminders collection
+      await addDoc(collection(db, 'completed'), {
+        title: reminder.title,
+        date: reminder.date,
+        time: reminder.time,
+        categoryID: reminder.categoryID,
+        userID: currentUser.uid,
+        completedAt: new Date()
+      });
+
+      // Delete from reminders collection
+      await deleteDoc(doc(db, 'reminders', reminder.id));
+
+      console.log("Reminder marked as completed!");
+    } catch (error) {
+      console.error("Error completing reminder:", error);
     }
   };
 

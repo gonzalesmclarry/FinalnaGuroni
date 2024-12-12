@@ -5,8 +5,9 @@ import { Link } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import styles from '../styles/profilestyles';
 import { MaterialIcons } from '@expo/vector-icons';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const ProfileScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -14,23 +15,49 @@ const ProfileScreen = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState('All');
   const [username, setUsername] = useState('');
+  const [completedCount, setCompletedCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
-    const fetchUsername = async () => {
+    const fetchUserData = async () => {
       try {
         const currentUser = auth.currentUser;
+        console.log('Current user:', currentUser); // Debug log
+
         if (currentUser) {
+          // Existing user data fetch
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          console.log('User doc data:', userDoc.data()); // Debug log
+
           if (userDoc.exists()) {
             setUsername(userDoc.data().username);
+            if (userDoc.data().profileImage) {
+              setProfileImage({ uri: userDoc.data().profileImage });
+            }
           }
+
+          // Updated query to use correct field name 'userID'
+          const completedRef = collection(db, 'completed');
+          const q = query(completedRef, where('userID', '==', currentUser.uid));
+          const querySnapshot = await getDocs(q);
+          console.log('Completed count:', querySnapshot.size);
+          console.log('Completed docs:', querySnapshot.docs.map(doc => doc.data()));
+          
+          setCompletedCount(querySnapshot.size);
+
+          // Fetch pending reminders
+          const remindersRef = collection(db, 'reminders');
+          const pendingQuery = query(remindersRef, where('userID', '==', currentUser.uid));
+          const pendingSnapshot = await getDocs(pendingQuery);
+          console.log('Pending count:', pendingSnapshot.size);
+          setPendingCount(pendingSnapshot.size);
         }
       } catch (error) {
-        console.error('Error fetching username:', error);
+        console.error('Error fetching user data:', error);
       }
     };
 
-    fetchUsername();
+    fetchUserData();
   }, []);
 
   // Image picker function
@@ -119,11 +146,11 @@ const ProfileScreen = () => {
       <Text style={styles.sectionTitle}>Reminder Overview</Text>
       <View style={styles.overviewContainer}>
         <View style={styles.overviewBox}>
-          <Text style={styles.overviewNumber}>0</Text>
+          <Text style={styles.overviewNumber}>{completedCount}</Text>
           <Text style={styles.overviewLabel}>Completed</Text>
         </View>
         <View style={styles.overviewBox}>
-          <Text style={styles.overviewNumber}>0</Text>
+          <Text style={styles.overviewNumber}>{pendingCount}</Text>
           <Text style={styles.overviewLabel}>Pending</Text>
         </View>
       </View>
