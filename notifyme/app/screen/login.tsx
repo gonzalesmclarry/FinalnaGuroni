@@ -44,7 +44,7 @@ const LoginScreen = () => {
       <View style={styles.inputContainer}>
         <Image source={require('../screen/images/envelope.png')} style={styles.icon} />
         <TextInput
-          placeholder="Email/Username"
+          placeholder="Email"
           placeholderTextColor="#C0C0C0"
           value={email}
           onChangeText={setEmail}

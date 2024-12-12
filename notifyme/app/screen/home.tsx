@@ -1,10 +1,10 @@
 import React, { useState, useEffect, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated, ScrollView, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import styles from '../styles/homestyles';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import AddReminder from './addreminder';
-import { collection, onSnapshot, query, where, getDocs, addDoc} from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs, addDoc, deleteDoc, doc} from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import CalendarModal from './CalendarScreen';
 
@@ -33,7 +33,7 @@ const HomeScreen = () => {
       where("userID", "==", currentUser.uid)
     );
 
-
+    
 
 
     // Add category filter if not showing 'All'
@@ -90,7 +90,26 @@ const HomeScreen = () => {
       console.error("Error starring reminder:", error);
     }
   };
-
+  const handleDeleteReminder = async (reminderId: string) => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+  
+      // Reference to the specific reminder document
+      const reminderDocRef = doc(db, 'reminders', reminderId);
+  
+      // Delete the reminder document
+      await deleteDoc(reminderDocRef);
+      
+      console.log("Reminder deleted successfully!");
+      
+      // The onSnapshot listener in useEffect will automatically update the reminders list
+    } catch (error) {
+      console.error("Error deleting reminder:", error);
+      // Optionally, you could show an error message to the user
+      // Alert.alert("Delete Failed", "Could not delete the reminder");
+    }
+  };
 
   
 
@@ -146,7 +165,7 @@ const HomeScreen = () => {
                   <TouchableOpacity style={styles.calendarButton} onPress={handShowCalendar}>
                     <FontAwesome5 name="calendar" size={20} color="#666" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteButton}>
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteReminder(reminder.id)}>
                     <FontAwesome5 name="trash" size={20} color="#ff4444" />
                   </TouchableOpacity>
 
@@ -281,7 +300,7 @@ const HomeScreen = () => {
         <Link href="/screen/home" style={styles.bottomTabButtonLeft}>
           <View style={styles.iconContainer}>
             <Image source={require('./images/white-home.png')} style={styles.bottomTabIcon} />
-            <Text style={styles.bottomTabText}>Reminders</Text>
+            <Text style={styles.bottomTabText}>Reminder</Text>
           </View>
         </Link>
         <Link href="/screen/calendar" style={styles.bottomTabButtonCenter}>
