@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons'; // Import Material Icons
-import { getFirestore, collection, query, getDocs } from 'firebase/firestore'; // Import Firestore
+import { getFirestore, collection, query, getDocs, where } from 'firebase/firestore'; // Import Firestore
+import { getAuth } from 'firebase/auth'; // Add this import
 
 type Category = {
     id: string;
@@ -23,18 +24,30 @@ const CategoriesScreen = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const db = getFirestore(); // Get Firestore instance
-                const categoriesQuery = query(collection(db, 'categories')); // Fetch categories from Firestore
-                const snapshot = await getDocs(categoriesQuery); // Execute query
-                const categoriesFromFirestore = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Category[]; // Cast to Category[]
-                setFetchedCategories(categoriesFromFirestore); // Update state with fetched categories
+                const auth = getAuth();
+                const currentUser = auth.currentUser;
+                if (!currentUser) return;
+
+                const db = getFirestore();
+                const categoriesRef = collection(db, 'categories');
+                const q = query(categoriesRef, where("userID", "==", currentUser.uid));
+                const querySnapshot = await getDocs(q);
+
+                // Map the fetched categories to match the Category type
+                const fetchedCategoriesData = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    name: doc.data().name
+                }));
+                
+                setFetchedCategories(fetchedCategoriesData);
+                console.log('Fetched Categories:', fetchedCategoriesData);
             } catch (error) {
-                console.error('Error fetching categories: ', error); // Handle errors
+                console.error('Error fetching categories:', error);
             }
         };
 
-        fetchCategories(); // Call the fetch function
-    }, []); // Empty dependency array to run once on mount
+        fetchCategories();
+    }, []);
 
     const combinedCategories = [...categoriesData, ...fetchedCategories]; // Combine built-in and fetched categories
 

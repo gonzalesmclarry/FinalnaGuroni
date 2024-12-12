@@ -156,7 +156,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginVertical: 5,
     borderRadius: 8,
+  },completedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f5f5f5',
+    marginTop: 8,
   },
+  completedText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  completedList: {
+    maxHeight: 200,
+  },
+  completedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#66B9C9',
+  },
+  completedCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#e8f5e9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  completedTitle: {
+    fontSize: 16,
+    color: '#666',
+    textDecorationLine: 'line-through',
+  },
+  completedDateTime: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+
+
+
+
 
   bottomTabBar: {
     flexDirection: 'row',
@@ -449,6 +495,13 @@ const styles = StyleSheet.create({
   dropdownText: {
     fontSize: 16,
     color: 'black',
+  },
+
+  checkedBox: {
+    backgroundColor: '#e8f5e9',
+    borderColor: '#4CAF50',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
 });

@@ -22,6 +22,8 @@ const HomeScreen = () => {
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [isMoreOptionsVisible, setIsMoreOptionsVisible] = useState(false);
+  const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
+  const [completedReminders, setCompletedReminders] = useState([]);
 
 
   useEffect(() => {
@@ -125,39 +127,86 @@ const HomeScreen = () => {
     return (
       <>
         {isRemindersExpanded && (
-          <ScrollView style={styles.remindersList}>
-            {reminders.map((reminder: {
-              title: ReactNode;
-              date: ReactNode;
-              time: ReactNode; id: string 
-}) => (
-              <View key={reminder.id} style={styles.reminderItem}>
-                <TouchableOpacity style={styles.checkboxContainer}>
-                  <View style={styles.checkbox} />
-                </TouchableOpacity>
-                <View style={styles.reminderTextContainer}>
-                  <Text style={styles.reminderTitle}>{reminder.title}</Text>
-                  <Text style={styles.reminderDateTime}>{reminder.date} {reminder.time}</Text>
+          <View>
+            {/* Active Reminders Section */}
+            <ScrollView style={styles.remindersList}>
+              {reminders.map((reminder: {
+                title: ReactNode;
+                date: ReactNode;
+                time: ReactNode;
+                id: string;
+              }) => (
+                <View key={reminder.id} style={styles.reminderItem}>
+                  <TouchableOpacity style={styles.checkboxContainer}>
+                    <View style={styles.checkbox} />
+                  </TouchableOpacity>
+                  <View style={styles.reminderTextContainer}>
+                    <Text style={styles.reminderTitle}>{reminder.title}</Text>
+                    <Text style={styles.reminderDateTime}>
+                      {reminder.date} {reminder.time}
+                    </Text>
+                  </View>
+                  <View style={styles.reminderActions}>
+                    <TouchableOpacity
+                      style={styles.starButton}
+                      onPress={() => handleStarReminder(reminder)}
+                    >
+                      <FontAwesome5 name="star" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.calendarButton}
+                      onPress={handShowCalendar}
+                    >
+                      <FontAwesome5 name="calendar" size={20} color="#666" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteButton}>
+                      <FontAwesome5 name="trash" size={20} color="#ff4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <View style={styles.reminderActions}>
-                  <TouchableOpacity style={styles.starButton} onPress={() => handleStarReminder(reminder)}>
-                    <FontAwesome5 name="star" size={20} color="#ccc" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.calendarButton} onPress={handShowCalendar}>
-                    <FontAwesome5 name="calendar" size={20} color="#666" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteButton}>
-                    <FontAwesome5 name="trash" size={20} color="#ff4444" />
-                  </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-                  <CalendarModal visible={isCalendarVisible} onClose={handleCloseCalendar} />
+            {/* Completed Section */}
+            <TouchableOpacity 
+              style={styles.reminderHeader}
+              onPress={() => setIsCompletedExpanded(!isCompletedExpanded)}
+            >
+              <Text style={styles.remindersText}>Completed</Text>
+              <MaterialIcons 
+                name={isCompletedExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+                size={24} 
+                color="black" 
+              />
+            </TouchableOpacity>
 
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-
+            {isCompletedExpanded && (
+              <ScrollView style={styles.remindersList}>
+                {completedReminders.map((reminder: {
+                  title: ReactNode;
+                  date: ReactNode;
+                  time: ReactNode;
+                  id: string;
+                }) => (
+                  <View key={reminder.id} style={styles.reminderItem}>
+                    <TouchableOpacity style={styles.checkboxContainer}>
+                      <View style={[styles.checkbox, styles.checkedBox]}>
+                        <FontAwesome5 name="check" size={12} color="#4CAF50" />
+                      </View>
+                    </TouchableOpacity>
+                    <View style={[styles.reminderTextContainer, { flex: 1 }]}>
+                      <Text style={styles.reminderTitle}>{reminder.title}</Text>
+                      <Text style={styles.reminderDateTime}>
+                        {reminder.date} {reminder.time}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
         )}
+        <CalendarModal visible={isCalendarVisible} onClose={handleCloseCalendar} />
       </>
     );
   };
