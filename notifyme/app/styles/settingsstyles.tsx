@@ -39,7 +39,74 @@ const styles = StyleSheet.create({
   },
   boldText: {
     fontSize: 16,
-  }
+  },
+
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+},
+
+modalContent: {
+  backgroundColor: 'white',
+  borderRadius: 15,
+  padding: 20,
+  width: '80%',
+},
+
+modalTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  marginBottom: 15,
+  textAlign: 'center',
+},
+
+input: {
+  borderWidth: 1,
+  borderColor: '#ccc',
+  borderRadius: 5,
+  padding: 10,
+  marginVertical: 10,
+},
+
+modalButtons: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginTop: 20,
+},
+
+modalButton: {
+  flex: 1,
+  padding: 10,
+  borderRadius: 5,
+  marginHorizontal: 5,
+},
+
+cancelButton: {
+  backgroundColor: '#f2f2f2',
+},
+
+updateButton: {
+  backgroundColor: '#47d0e6',
+},
+
+cancelButtonText: {
+  color: 'black',
+  textAlign: 'center',
+  fontWeight: 'bold',
+},
+
+updateButtonText: {
+  color: 'white',
+  textAlign: 'center',
+  fontWeight: 'bold',
+},
+
+
+
+
 });
 
 export default styles;
