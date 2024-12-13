@@ -49,6 +49,16 @@ export default function ScreenLayout() {
         options={{ headerShown: false }} 
       />
 
+      <Stack.Screen
+        name="settings"
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="deletedfiles"
+        options={{ headerShown: false }}
+      />
+
     </Stack>
   );
 }

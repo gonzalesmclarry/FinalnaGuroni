@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated, ScrollView, Modal } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import styles from '../styles/homestyles';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
@@ -8,6 +8,15 @@ import { collection, onSnapshot, query, where, getDocs, addDoc, deleteDoc, doc }
 import { auth, db } from '../../firebase';
 import CalendarModal from './CalendarScreen';
 
+// Add this interface near the top of your file
+interface Reminder {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  categoryID: string;
+  userID: string;
+}
 
 const HomeScreen = () => {
   const [activeTab, setActiveTab] = useState('All');
@@ -25,7 +34,7 @@ const HomeScreen = () => {
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const [completedReminders, setCompletedReminders] = useState([]);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [reminderToDelete, setReminderToDelete] = useState(null);
+  const [reminderToDelete, setReminderToDelete] = useState<Reminder | null>(null);
 
 
   useEffect(() => {
@@ -164,7 +173,13 @@ const HomeScreen = () => {
                     >
                       <FontAwesome5 name="calendar" size={20} color="#666" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.deleteButton}>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => {
+                        setReminderToDelete(reminder as Reminder);
+                        setIsDeleteModalVisible(true);
+                      }}
+                    >
                       <FontAwesome5 name="trash" size={20} color="#ff4444" />
                     </TouchableOpacity>
                   </View>
@@ -211,7 +226,7 @@ const HomeScreen = () => {
             )}
           </View>
         )}
-        <CalendarModal visible={isCalendarVisible} onClose={handleCloseCalendar} />
+        <CalendarModal visible={isCalendarVisible} onClose={handleCloseCalendar} reminders={[]} />
       </>
     );
   };
@@ -295,6 +310,34 @@ const HomeScreen = () => {
       console.log("Reminder marked as completed!");
     } catch (error) {
       console.error("Error completing reminder:", error);
+    }
+  };
+
+  const handleDeleteReminder = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !reminderToDelete) return;
+
+    try {
+      // First, add to deleted collection
+      await addDoc(collection(db, 'deleted'), {
+        title: reminderToDelete.title,
+        date: reminderToDelete.date,
+        time: reminderToDelete.time,
+        categoryID: reminderToDelete.categoryID,
+        userID: currentUser.uid,
+        deletedAt: new Date()
+      });
+
+      // Then delete from reminders collection
+      await deleteDoc(doc(db, 'reminders', reminderToDelete.id));
+
+      // Close modal and clear the reminderToDelete
+      setIsDeleteModalVisible(false);
+      setReminderToDelete(null);
+
+      console.log("Reminder deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting reminder:", error);
     }
   };
 
@@ -483,7 +526,8 @@ const HomeScreen = () => {
             </TouchableOpacity>
 
             {/* Settings */}
-            <TouchableOpacity style={styles.sidebarButton}>
+            <TouchableOpacity style={styles.sidebarButton}
+            onPress={() => router.push('/screen/settings')}>
               <FontAwesome5 name="cog" size={22} color="black" solid />
               <Text style={styles.sidebarButtonText}>Settings</Text>
             </TouchableOpacity>
@@ -496,6 +540,33 @@ const HomeScreen = () => {
         isExpanded={isExpanded}
         setIsExpanded={setIsExpanded}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={isDeleteModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Are you sure you want to delete this?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalButton}
+                onPress={() => setIsDeleteModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>No</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.deleteButton]}
+                onPress={handleDeleteReminder}
+              >
+                <Text style={[styles.modalButtonText, styles.deleteButtonText]}>Yes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

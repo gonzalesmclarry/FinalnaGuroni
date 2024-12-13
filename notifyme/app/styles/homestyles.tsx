@@ -505,7 +505,45 @@ const styles = StyleSheet.create({
   },
 
 
+  // ... existing styles ...
 
+modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalContent: {
+  backgroundColor: 'white',
+  padding: 20,
+  borderRadius: 10,
+  width: '80%',
+  alignItems: 'center',
+},
+modalText: {
+  fontSize: 16,
+  marginBottom: 20,
+  textAlign: 'center',
+},
+modalButtons: {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  width: '100%',
+},
+modalButton: {
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 5,
+  backgroundColor: '#f0f0f0',
+  minWidth: 100,
+  alignItems: 'center',
+},
+modalButtonText: {
+  fontSize: 16,
+},
+deleteButtonText: {
+  color: '#ff4444',
+},
   
 
 });
