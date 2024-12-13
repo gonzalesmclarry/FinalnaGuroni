@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
     maxHeight: 250, // Set a maximum height for the container
     borderRadius: 15,
     alignSelf: 'center',
-    elevation: 5,
   },
 
   remindersList: {
@@ -217,7 +216,7 @@ const styles = StyleSheet.create({
 
   bottomTabButtonLeft: {
     position: 'absolute',
-    left: 25, 
+    left: 27, 
     alignItems: 'center',
   },
   bottomTabButtonCenter: {
@@ -233,10 +232,11 @@ const styles = StyleSheet.create({
   },
 
   bottomTabText: {
-    marginRight: -15,
+    marginRight: -20,
     color: '#000',
     width: 64,
     fontSize: 15,
+    alignItems: 'center',
   },
 
   bottomTabIcon: {
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 0,
-    height: '100%',
+    height: '110%',
     width: '75%', // Covers 3/4 of the screen width
     backgroundColor: '#A8D8E4',
     zIndex: 10, // Ensures it appears above other components
@@ -544,7 +544,14 @@ modalButtonText: {
 deleteButtonText: {
   color: '#ff4444',
 },
-  
+
+feedbackButton: {
+  marginTop: 'auto', // This will push the button to the bottom
+  borderTopWidth: 1,
+  borderTopColor: '#e0e0e0',
+  paddingTop: 15,
+  marginBottom: 20,
+},
 
 });
 

@@ -424,7 +424,7 @@ const HomeScreen = () => {
         <Link href="/screen/home" style={styles.bottomTabButtonLeft}>
           <View style={styles.iconContainer}>
             <Image source={require('./images/white-home.png')} style={styles.bottomTabIcon} />
-            <Text style={styles.bottomTabText}>Reminders</Text>
+            <Text style={styles.bottomTabText}>Home</Text>
           </View>
         </Link>
         <Link href="/screen/calendar" style={styles.bottomTabButtonCenter}>
@@ -520,7 +520,8 @@ const HomeScreen = () => {
             </Link>
 
             {/* FAQ Button */}
-            <TouchableOpacity style={styles.sidebarButton}>
+            <TouchableOpacity style={styles.sidebarButton}
+            onPress={() => router.push('/screen/faq')}>
               <FontAwesome5 name="question-circle" size={22} color="black" solid />
               <Text style={styles.sidebarButtonText}>FAQ</Text>
             </TouchableOpacity>
@@ -530,6 +531,15 @@ const HomeScreen = () => {
             onPress={() => router.push('/screen/settings')}>
               <FontAwesome5 name="cog" size={22} color="black" solid />
               <Text style={styles.sidebarButtonText}>Settings</Text>
+            </TouchableOpacity>
+
+            {/* Add Feedback button at the bottom */}
+            <TouchableOpacity 
+              style={[styles.sidebarButton, styles.feedbackButton]}
+              onPress={() => router.push('screen/feedback')}
+            >
+              <FontAwesome5 name="comment" size={22} color="black" solid />
+              <Text style={styles.sidebarButtonText}>Feedback</Text>
             </TouchableOpacity>
 
           </ScrollView>

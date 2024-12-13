@@ -160,7 +160,7 @@ const ProfileScreen = () => {
         <Link href="/screen/home" style={styles.bottomTabButtonLeft}>
           <View style={styles.iconContainer}>
             <Image source={require('../screen/images/home.png')} style={styles.bottomTabIcon} />
-            <Text style={styles.bottomTabText}>Reminders</Text>
+            <Text style={styles.bottomTabText}>Home</Text>
           </View>
         </Link>
         <Link href="/screen/calendar" style={styles.bottomTabButtonCenter}>

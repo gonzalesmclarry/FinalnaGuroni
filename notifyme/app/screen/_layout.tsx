@@ -59,6 +59,16 @@ export default function ScreenLayout() {
         options={{ headerShown: false }}
       />
 
+      <Stack.Screen
+        name="feedback"
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="faq"
+        options={{ headerShown: false }}
+      />
+
     </Stack>
   );
 }
