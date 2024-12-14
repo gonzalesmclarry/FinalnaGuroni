@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
     maxHeight: 250, // Set a maximum height for the container
     borderRadius: 15,
     alignSelf: 'center',
-    elevation: 5,
   },
 
   remindersList: {
@@ -156,7 +155,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginVertical: 5,
     borderRadius: 8,
+  },completedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f5f5f5',
+    marginTop: 8,
   },
+  completedText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  completedList: {
+    maxHeight: 200,
+  },
+  completedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#66B9C9',
+  },
+  completedCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#e8f5e9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  completedTitle: {
+    fontSize: 16,
+    color: '#666',
+    textDecorationLine: 'line-through',
+  },
+  completedDateTime: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+
+
+
+
 
   bottomTabBar: {
     flexDirection: 'row',
@@ -171,7 +216,7 @@ const styles = StyleSheet.create({
 
   bottomTabButtonLeft: {
     position: 'absolute',
-    left: 25, 
+    left: 27, 
     alignItems: 'center',
   },
   bottomTabButtonCenter: {
@@ -187,10 +232,11 @@ const styles = StyleSheet.create({
   },
 
   bottomTabText: {
-    marginRight: -15,
+    marginRight: -20,
     color: '#000',
     width: 64,
     fontSize: 15,
+    alignItems: 'center',
   },
 
   bottomTabIcon: {
@@ -313,7 +359,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 0,
-    height: '100%',
+    height: '110%',
     width: '75%', // Covers 3/4 of the screen width
     backgroundColor: '#A8D8E4',
     zIndex: 10, // Ensures it appears above other components
@@ -450,6 +496,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'black',
   },
+
+  checkedBox: {
+    backgroundColor: '#e8f5e9',
+    borderColor: '#4CAF50',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+
+  // ... existing styles ...
+
+modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalContent: {
+  backgroundColor: 'white',
+  padding: 20,
+  borderRadius: 10,
+  width: '80%',
+  alignItems: 'center',
+},
+modalText: {
+  fontSize: 16,
+  marginBottom: 20,
+  textAlign: 'center',
+},
+modalButtons: {
+  flexDirection: 'row',
+  justifyContent: 'space-around',
+  width: '100%',
+},
+modalButton: {
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 5,
+  backgroundColor: '#f0f0f0',
+  minWidth: 100,
+  alignItems: 'center',
+},
+modalButtonText: {
+  fontSize: 16,
+},
+deleteButtonText: {
+  color: '#ff4444',
+},
+
+feedbackButton: {
+  marginTop: 'auto', // This will push the button to the bottom
+  borderTopWidth: 1,
+  borderTopColor: '#e0e0e0',
+  paddingTop: 15,
+  marginBottom: 20,
+},
 
 });
 

@@ -1,10 +1,47 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../../firebase';
 export default function ForgotPasswordScreen() {
     const [email, setEmail] = useState('');
     const router = useRouter();
+
+    const handleSendCode = async () => {
+        if (!email.trim()) {
+            Alert.alert('Error', 'Please enter your email');
+            return;
+        }
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            Alert.alert(
+                'Success', 
+                'Password reset email has been sent. Please check your email.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => router.push('/screen/login')
+                    
+                    }
+                ]
+            );
+        } catch (error) {
+            console.error('Error sending reset email:', error);
+            let errorMessage = 'Failed to send reset email';
+            
+            // Handle specific error cases
+            if (error instanceof Error && 'code' in error) {
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'No account found with this email';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Invalid email address';
+                }
+            }
+            
+            Alert.alert('Error', errorMessage);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -12,7 +49,7 @@ export default function ForgotPasswordScreen() {
             <View style={styles.box}>
                 <TouchableOpacity 
                     style={styles.iconButton} 
-                    onPress={() => router.back()} // Navigate back when icon is pressed
+                    onPress={() => router.back()}
                 >
                     <Image source={require('../screen/images/ex.png')} style={styles.iconImage} />
                 </TouchableOpacity>
@@ -26,10 +63,14 @@ export default function ForgotPasswordScreen() {
                     placeholder="Email"
                     placeholderTextColor="#7E7E7E"
                     value={email}
-                    onChangeText={setEmail} // Update state on input change
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
                 />
-                <TouchableOpacity style={styles.button}
-                    onPress={() => router.push('/screen/reset')}>
+                <TouchableOpacity 
+                    style={styles.button}
+                    onPress={handleSendCode}
+                >
                     <Text style={styles.buttonText}>Send code</Text>
                 </TouchableOpacity>
             </View>

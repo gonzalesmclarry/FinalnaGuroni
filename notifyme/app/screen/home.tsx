@@ -1,13 +1,22 @@
 import React, { useState, useEffect, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Animated, ScrollView, Modal } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import styles from '../styles/homestyles';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import AddReminder from './addreminder';
-import { collection, onSnapshot, query, where, getDocs, addDoc, deleteDoc, doc} from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import CalendarModal from './CalendarScreen';
 
+// Add this interface near the top of your file
+interface Reminder {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  categoryID: string;
+  userID: string;
+}
 
 const HomeScreen = () => {
   const [activeTab, setActiveTab] = useState('All');
@@ -22,6 +31,10 @@ const HomeScreen = () => {
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [isMoreOptionsVisible, setIsMoreOptionsVisible] = useState(false);
+  const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
+  const [completedReminders, setCompletedReminders] = useState([]);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [reminderToDelete, setReminderToDelete] = useState<Reminder | null>(null);
 
 
   useEffect(() => {
@@ -33,7 +46,7 @@ const HomeScreen = () => {
       where("userID", "==", currentUser.uid)
     );
 
-    
+
 
 
     // Add category filter if not showing 'All'
@@ -90,26 +103,7 @@ const HomeScreen = () => {
       console.error("Error starring reminder:", error);
     }
   };
-  const handleDeleteReminder = async (reminderId: string) => {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-  
-      // Reference to the specific reminder document
-      const reminderDocRef = doc(db, 'reminders', reminderId);
-  
-      // Delete the reminder document
-      await deleteDoc(reminderDocRef);
-      
-      console.log("Reminder deleted successfully!");
-      
-      // The onSnapshot listener in useEffect will automatically update the reminders list
-    } catch (error) {
-      console.error("Error deleting reminder:", error);
-      // Optionally, you could show an error message to the user
-      // Alert.alert("Delete Failed", "Could not delete the reminder");
-    }
-  };
+
 
   
 
@@ -144,39 +138,95 @@ const HomeScreen = () => {
     return (
       <>
         {isRemindersExpanded && (
-          <ScrollView style={styles.remindersList}>
-            {reminders.map((reminder: {
-              title: ReactNode;
-              date: ReactNode;
-              time: ReactNode; id: string 
-}) => (
-              <View key={reminder.id} style={styles.reminderItem}>
-                <TouchableOpacity style={styles.checkboxContainer}>
-                  <View style={styles.checkbox} />
-                </TouchableOpacity>
-                <View style={styles.reminderTextContainer}>
-                  <Text style={styles.reminderTitle}>{reminder.title}</Text>
-                  <Text style={styles.reminderDateTime}>{reminder.date} {reminder.time}</Text>
+          <View>
+            {/* Active Reminders Section */}
+            <ScrollView style={styles.remindersList}>
+              {reminders.map((reminder: {
+                title: ReactNode;
+                date: ReactNode;
+                time: ReactNode;
+                id: string;
+              }) => (
+                <View key={reminder.id} style={styles.reminderItem}>
+                  <TouchableOpacity 
+                    style={styles.checkboxContainer} 
+                    onPress={() => handleCheckboxClick(reminder)}
+                  >
+                    <View style={styles.checkbox} />
+                  </TouchableOpacity>
+                  <View style={styles.reminderTextContainer}>
+                    <Text style={styles.reminderTitle}>{reminder.title}</Text>
+                    <Text style={styles.reminderDateTime}>
+                      {reminder.date} {reminder.time}
+                    </Text>
+                  </View>
+                  <View style={styles.reminderActions}>
+                    <TouchableOpacity
+                      style={styles.starButton}
+                      onPress={() => handleStarReminder(reminder)}
+                    >
+                      <FontAwesome5 name="star" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.calendarButton}
+                      onPress={handShowCalendar}
+                    >
+                      <FontAwesome5 name="calendar" size={20} color="#666" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => {
+                        setReminderToDelete(reminder as Reminder);
+                        setIsDeleteModalVisible(true);
+                      }}
+                    >
+                      <FontAwesome5 name="trash" size={20} color="#ff4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <View style={styles.reminderActions}>
-                  <TouchableOpacity style={styles.starButton} onPress={() => handleStarReminder(reminder)}>
-                    <FontAwesome5 name="star" size={20} color="#ccc" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.calendarButton} onPress={handShowCalendar}>
-                    <FontAwesome5 name="calendar" size={20} color="#666" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteReminder(reminder.id)}>
-                    <FontAwesome5 name="trash" size={20} color="#ff4444" />
-                  </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-                  <CalendarModal visible={isCalendarVisible} onClose={handleCloseCalendar} />
+            {/* Completed Section */}
+            <TouchableOpacity 
+              style={styles.reminderHeader}
+              onPress={() => setIsCompletedExpanded(!isCompletedExpanded)}
+            >
+              <Text style={styles.remindersText}>Completed</Text>
+              <MaterialIcons 
+                name={isCompletedExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+                size={24} 
+                color="black" 
+              />
+            </TouchableOpacity>
 
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-
+            {isCompletedExpanded && (
+              <ScrollView style={styles.remindersList}>
+                {completedReminders.map((reminder: {
+                  title: ReactNode;
+                  date: ReactNode;
+                  time: ReactNode;
+                  id: string;
+                }) => (
+                  <View key={reminder.id} style={styles.reminderItem}>
+                    <TouchableOpacity style={styles.checkboxContainer}>
+                      <View style={[styles.checkbox, styles.checkedBox]}>
+                        <FontAwesome5 name="check" size={12} color="#4CAF50" />
+                      </View>
+                    </TouchableOpacity>
+                    <View style={[styles.reminderTextContainer, { flex: 1 }]}>
+                      <Text style={styles.reminderTitle}>{reminder.title}</Text>
+                      <Text style={styles.reminderDateTime}>
+                        {reminder.date} {reminder.time}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
         )}
+        <CalendarModal visible={isCalendarVisible} onClose={handleCloseCalendar} reminders={[]} />
       </>
     );
   };
@@ -214,6 +264,80 @@ const HomeScreen = () => {
       router.push('screen/login');
     } catch (error) {
       console.error("Error logging out:", error);
+    }
+  };
+
+  // Add useEffect to fetch completed reminders
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    const completedQuery = query(
+      collection(db, "completed"),
+      where("userID", "==", currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(completedQuery, (snapshot) => {
+      const completedList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCompletedReminders(completedList as any);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Add function to handle checkbox click
+  const handleCheckboxClick = async (reminder: any) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      // Add to completed_reminders collection
+      await addDoc(collection(db, 'completed'), {
+        title: reminder.title,
+        date: reminder.date,
+        time: reminder.time,
+        categoryID: reminder.categoryID,
+        userID: currentUser.uid,
+        completedAt: new Date()
+      });
+
+      // Delete from reminders collection
+      await deleteDoc(doc(db, 'reminders', reminder.id));
+
+      console.log("Reminder marked as completed!");
+    } catch (error) {
+      console.error("Error completing reminder:", error);
+    }
+  };
+
+  const handleDeleteReminder = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser || !reminderToDelete) return;
+
+    try {
+      // First, add to deleted collection
+      await addDoc(collection(db, 'deleted'), {
+        title: reminderToDelete.title,
+        date: reminderToDelete.date,
+        time: reminderToDelete.time,
+        categoryID: reminderToDelete.categoryID,
+        userID: currentUser.uid,
+        deletedAt: new Date()
+      });
+
+      // Then delete from reminders collection
+      await deleteDoc(doc(db, 'reminders', reminderToDelete.id));
+
+      // Close modal and clear the reminderToDelete
+      setIsDeleteModalVisible(false);
+      setReminderToDelete(null);
+
+      console.log("Reminder deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting reminder:", error);
     }
   };
 
@@ -300,7 +424,7 @@ const HomeScreen = () => {
         <Link href="/screen/home" style={styles.bottomTabButtonLeft}>
           <View style={styles.iconContainer}>
             <Image source={require('./images/white-home.png')} style={styles.bottomTabIcon} />
-            <Text style={styles.bottomTabText}>Reminder</Text>
+            <Text style={styles.bottomTabText}>Home</Text>
           </View>
         </Link>
         <Link href="/screen/calendar" style={styles.bottomTabButtonCenter}>
@@ -396,15 +520,26 @@ const HomeScreen = () => {
             </Link>
 
             {/* FAQ Button */}
-            <TouchableOpacity style={styles.sidebarButton}>
+            <TouchableOpacity style={styles.sidebarButton}
+            onPress={() => router.push('/screen/faq')}>
               <FontAwesome5 name="question-circle" size={22} color="black" solid />
               <Text style={styles.sidebarButtonText}>FAQ</Text>
             </TouchableOpacity>
 
             {/* Settings */}
-            <TouchableOpacity style={styles.sidebarButton}>
+            <TouchableOpacity style={styles.sidebarButton}
+            onPress={() => router.push('/screen/settings')}>
               <FontAwesome5 name="cog" size={22} color="black" solid />
               <Text style={styles.sidebarButtonText}>Settings</Text>
+            </TouchableOpacity>
+
+            {/* Add Feedback button at the bottom */}
+            <TouchableOpacity 
+              style={[styles.sidebarButton, styles.feedbackButton]}
+              onPress={() => router.push('screen/feedback')}
+            >
+              <FontAwesome5 name="comment" size={22} color="black" solid />
+              <Text style={styles.sidebarButtonText}>Feedback</Text>
             </TouchableOpacity>
 
           </ScrollView>
@@ -415,6 +550,33 @@ const HomeScreen = () => {
         isExpanded={isExpanded}
         setIsExpanded={setIsExpanded}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={isDeleteModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Are you sure you want to delete this?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalButton}
+                onPress={() => setIsDeleteModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>No</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.deleteButton]}
+                onPress={handleDeleteReminder}
+              >
+                <Text style={[styles.modalButtonText, styles.deleteButtonText]}>Yes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

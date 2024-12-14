@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "firebase": "^11.0.2"
+    "expo-notifications": "^0.29.11",
+    "firebase": "^11.0.2",
+    "react-native-vector-icons": "^10.2.0"
   }
 }

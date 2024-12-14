@@ -5,10 +5,23 @@ import { Calendar } from 'react-native-calendars';
 const CalendarModal = ({
   visible,
   onClose,
+  reminders,
 }: {
   visible: boolean;
   onClose: () => void;
+  reminders: Array<{ date: string }>;
 }) => {
+  const markedDates = React.useMemo(() => {
+    const marked: { [key: string]: { marked: boolean; dotColor: string } } = {};
+    reminders.forEach((reminder) => {
+      marked[reminder.date] = {
+        marked: true,
+        dotColor: 'red'
+      };
+    });
+    return marked;
+  }, [reminders]);
+
   return (
     <Modal
       transparent
@@ -32,6 +45,7 @@ const CalendarModal = ({
               arrowColor: '#47d0e6',
               todayTextColor: 'red',
             }}
+            markedDates={markedDates}
           />
 
           <TouchableOpacity style={styles.updateButton}>

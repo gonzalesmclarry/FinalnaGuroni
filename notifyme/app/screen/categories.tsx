@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons'; // Import Material Icons
-import { getFirestore, collection, query, getDocs } from 'firebase/firestore'; // Import Firestore
+import { getFirestore, collection, query, getDocs, where, addDoc } from 'firebase/firestore'; // Import Firestore
+import { getAuth } from 'firebase/auth'; // Add this import
 
 type Category = {
     id: string;
@@ -19,24 +20,80 @@ const categoriesData: Category[] = [
 const CategoriesScreen = () => {
     const navigation = useNavigation();
     const [fetchedCategories, setFetchedCategories] = useState<Category[]>([]); // State for fetched categories
+    const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const auth = getAuth();
+    const db = getFirestore();
 
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const db = getFirestore(); // Get Firestore instance
-                const categoriesQuery = query(collection(db, 'categories')); // Fetch categories from Firestore
-                const snapshot = await getDocs(categoriesQuery); // Execute query
-                const categoriesFromFirestore = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Category[]; // Cast to Category[]
-                setFetchedCategories(categoriesFromFirestore); // Update state with fetched categories
+                const auth = getAuth();
+                const currentUser = auth.currentUser;
+                if (!currentUser) return;
+
+                const db = getFirestore();
+                const categoriesRef = collection(db, 'categories');
+                const q = query(categoriesRef, where("userID", "==", currentUser.uid));
+                const querySnapshot = await getDocs(q);
+
+                // Map the fetched categories to match the Category type
+                const fetchedCategoriesData = querySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    name: doc.data().name
+                }));
+                
+                setFetchedCategories(fetchedCategoriesData);
+                console.log('Fetched Categories:', fetchedCategoriesData);
             } catch (error) {
-                console.error('Error fetching categories: ', error); // Handle errors
+                console.error('Error fetching categories:', error);
             }
         };
 
-        fetchCategories(); // Call the fetch function
-    }, []); // Empty dependency array to run once on mount
+        fetchCategories();
+    }, []);
 
     const combinedCategories = [...categoriesData, ...fetchedCategories]; // Combine built-in and fetched categories
+
+    const toggleCreateCategoryModal = () => {
+        setIsCreateModalVisible(!isCreateModalVisible);
+    };
+
+    const handleCreateCategory = async (): Promise<void> => {
+        try {
+            if (!newCategoryName.trim()) {
+                Alert.alert('Error', 'Please enter a category name');
+                return;
+            }
+
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                Alert.alert('Error', 'You must be logged in to create a category');
+                return;
+            }
+
+            const categoriesRef = collection(db, 'categories');
+            const newCategory = {
+                name: newCategoryName.trim(),
+                userID: currentUser.uid,
+                createdAt: new Date()
+            };
+
+            const docRef = await addDoc(categoriesRef, newCategory);
+            
+            // Add the new category to the local state
+            setFetchedCategories(prev => [...prev, {
+                id: docRef.id,
+                name: newCategoryName.trim()
+            }]);
+
+            setNewCategoryName('');
+            setIsCreateModalVisible(false);
+        } catch (error) {
+            console.error('Error creating category:', error);
+            Alert.alert('Error', 'Failed to create category');
+        }
+    };
 
     const renderCategory = ({ item }: { item: Category }) => (
         <View style={styles.categoryItem}>
@@ -62,12 +119,43 @@ const CategoriesScreen = () => {
                 renderItem={renderCategory}
             />
 
-            {/* Create New Button */}
+            {/* Modal for creating new category */}
+            <Modal
+                visible={isCreateModalVisible}
+                transparent={true}
+                animationType="slide"
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Create New Category</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Category Name"
+                            value={newCategoryName}
+                            onChangeText={setNewCategoryName}
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity 
+                                style={styles.cancelButton} 
+                                onPress={toggleCreateCategoryModal}
+                            >
+                                <Text>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                                style={styles.createModalButton}
+                                onPress={handleCreateCategory}
+                            >
+                                <Text>Create</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Update the create button to open modal */}
             <TouchableOpacity
                 style={styles.createButton}
-                onPress={() => {
-                    /* Handle create new category */
-                }}
+                onPress={toggleCreateCategoryModal}
             >
                 <MaterialIcons name="add" size={24} color="black" />
                 <Text style={styles.createButtonText}> Create New</Text>
@@ -130,6 +218,48 @@ const styles = StyleSheet.create({
         color: 'black',
         fontSize: 17,
         marginLeft: 10,
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        width: '80%',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 15,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        padding: 10,
+        borderRadius: 5,
+        marginBottom: 15,
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    cancelButton: {
+        padding: 10,
+        borderRadius: 5,
+        backgroundColor: '#ddd',
+        width: '45%',
+        alignItems: 'center',
+    },
+    createModalButton: {
+        padding: 10,
+        borderRadius: 5,
+        backgroundColor: '#47d0e6',
+        width: '45%',
+        alignItems: 'center',
     },
 });
 
