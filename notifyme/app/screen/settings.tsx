@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Alert, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
 import styles from '../styles/settingsstyles';
@@ -13,6 +13,7 @@ const SettingsScreen = () => {
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
 
   const handleUpdateUsername = async () => {
     try {
@@ -183,7 +184,7 @@ const SettingsScreen = () => {
 
       {/* Files Settings */}
       <View style={styles.content}>
-        <Text style={[styles.contentText, {marginTop: -170}]}>Files</Text>
+        <Text style={[styles.contentText, {marginTop: -70}]}>Files</Text>
         <TouchableOpacity 
           style={styles.menuItem}
           onPress={() => router.push('screen/deletedfiles')}
@@ -191,6 +192,20 @@ const SettingsScreen = () => {
           <Text style={styles.boldText}>Deleted Files</Text>
           <FontAwesome5 name="chevron-right" size={20} color="black" />
         </TouchableOpacity>
+      </View>
+
+      {/* Notifications Settings */}
+      <View style={styles.content}>
+        <Text style={[styles.contentText, {marginTop: -170}]}>Notifications</Text>
+        <View style={styles.menuItem}>
+          <Text style={styles.boldText}>Enable Notifications</Text>
+          <Switch
+            value={isNotificationsEnabled}
+            onValueChange={setIsNotificationsEnabled}
+            trackColor={{ false: "#767577", true: "#81b0ff" }}
+            thumbColor={isNotificationsEnabled ? "#f5dd4b" : "#f4f3f4"}
+          />
+        </View>
       </View>
     </View>
   );
