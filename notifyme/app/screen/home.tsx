@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, Image, Animated, ScrollView, Modal } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link, router, useRouter } from 'expo-router';
 import styles from '../styles/homestyles';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import AddReminder from './addreminder';
@@ -26,16 +26,22 @@ const HomeScreen = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRemindersExpanded, setIsRemindersExpanded] = useState(false);
   const [reminders, setReminders] = useState([]);
-  const [isMoreOptionsExpanded, setIsMoreOptionsExpanded] = useState(false);
-  const router = useRouter();
   const [isCalendarVisible, setIsCalendarVisible] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
-  const [isMoreOptionsVisible, setIsMoreOptionsVisible] = useState(false);
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false);
   const [completedReminders, setCompletedReminders] = useState([]);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [reminderToDelete, setReminderToDelete] = useState<Reminder | null>(null);
   const [starredReminders, setStarredReminders] = useState<string[]>([]);
+  const [isCompleteModalVisible, setIsCompleteModalVisible] = useState(false);
+  const [reminderToComplete, setReminderToComplete] = useState<Reminder | null>(null);
+  const [categories, setCategories] = useState([
+    { name: 'All', count: 0 },
+    { name: 'Work', count: 0 },
+    { name: 'Birthday', count: 0 },
+    { name: 'Occasion', count: 0 },
+    { name: 'Special', count: 0 }
+  ]);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -93,6 +99,45 @@ const HomeScreen = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    const categoriesQuery = query(
+      collection(db, "categories"),
+      where("userID", "==", currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(categoriesQuery, (snapshot) => {
+      const fetchedCategories = snapshot.docs.map(doc => ({
+        name: doc.data().name,
+        count: 0  // We'll update this count later if needed
+      }));
+
+      // Combine default categories with user's custom categories
+      const defaultCategories = [
+        { name: 'All', count: 0 },
+        { name: 'Work', count: 0 },
+        { name: 'Birthday', count: 0 },
+        { name: 'Occasion', count: 0 },
+        { name: 'Special', count: 0 }
+      ];
+
+      const allCategories = [...defaultCategories];
+
+      // Add only new categories that aren't in the default list
+      fetchedCategories.forEach(fetchedCat => {
+        if (!defaultCategories.some(defCat => defCat.name === fetchedCat.name)) {
+          allCategories.push(fetchedCat);
+        }
+      });
+
+      setCategories(allCategories);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handShowCalendar = () => {
     setIsCalendarVisible(true);
   };
@@ -142,20 +187,9 @@ const HomeScreen = () => {
 
   
 
-  const categories = [
-    { name: 'All', count: 0 },
-    { name: 'Work', count: 0 },
-    { name: 'Birthday', count: 0 },
-    { name: 'Occasion', count: 0 },
-    { name: 'Special', count: 0 },
-  ];
   // Function to toggle sidebar visibility
   const toggleSidebar = () => {
     setIsSidebarVisible(!isSidebarVisible);
-  };
-
-  const toggleMoreOptions = () => {
-    setIsMoreOptionsVisible(!isMoreOptionsVisible);
   };
 
   const renderContent = () => {
@@ -172,11 +206,79 @@ const HomeScreen = () => {
 
     return (
       <>
-        {isRemindersExpanded && (
-          <View>
-            {/* Active Reminders Section */}
-            <ScrollView style={styles.remindersList}>
-              {reminders.map((reminder: {
+        {/* Reminders Header */}
+        <View style={styles.reminderHeader}>
+          <Text style={styles.remindersText}>Reminders</Text>
+        </View>
+
+        {/* Active Reminders Section - Now always visible and scrollable */}
+        <ScrollView style={styles.remindersList}>
+          {reminders.map((reminder: {
+            title: ReactNode;
+            date: ReactNode;
+            time: ReactNode;
+            id: string;
+          }) => (
+            <View key={reminder.id} style={styles.reminderItem}>
+              <TouchableOpacity 
+                style={styles.checkboxContainer} 
+                onPress={() => handleCheckboxClick(reminder)}
+              >
+                <View style={styles.checkbox} />
+              </TouchableOpacity>
+              <View style={styles.reminderTextContainer}>
+                <Text style={styles.reminderTitle}>{reminder.title}</Text>
+                <Text style={styles.reminderDateTime}>
+                  {reminder.date} {reminder.time}
+                </Text>
+              </View>
+              <View style={styles.reminderActions}>
+                <TouchableOpacity
+                  style={styles.starButton}
+                  onPress={() => handleStarReminder(reminder)}
+                >
+                  <FontAwesome5 
+                    name="star" 
+                    size={20} 
+                    color={starredReminders.includes(reminder.id) ? "#FFD700" : "#ccc"} 
+                    solid={starredReminders.includes(reminder.id)}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.calendarButton}
+                  onPress={handShowCalendar}
+                >
+                  <FontAwesome5 name="calendar" size={20} color="#666" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.deleteButton}
+                  onPress={() => {
+                    setReminderToDelete(reminder as Reminder);
+                    setIsDeleteModalVisible(true);
+                  }}
+                >
+                  <FontAwesome5 name="trash" size={20} color="#ff4444" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+
+          {/* Only show Completed section if there are completed reminders */}
+          {completedReminders.length > 0 && (
+            <>
+              <TouchableOpacity 
+                style={styles.completedHeader}
+                onPress={() => setIsCompletedExpanded(!isCompletedExpanded)}
+              >
+                <Text style={styles.remindersText}>Completed</Text>
+                <MaterialIcons 
+                  name={isCompletedExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+                  size={24} 
+                  color="black" 
+                />
+              </TouchableOpacity>
+
+              {isCompletedExpanded && completedReminders.map((reminder: {
                 title: ReactNode;
                 date: ReactNode;
                 time: ReactNode;
@@ -184,91 +286,24 @@ const HomeScreen = () => {
               }) => (
                 <View key={reminder.id} style={styles.reminderItem}>
                   <TouchableOpacity 
-                    style={styles.checkboxContainer} 
-                    onPress={() => handleCheckboxClick(reminder)}
+                    style={styles.checkboxContainer}
+                    onPress={() => handleUncompleteReminder(reminder)}
                   >
-                    <View style={styles.checkbox} />
+                    <View style={[styles.checkbox, styles.checkedBox]}>
+                      <FontAwesome5 name="check" size={12} color="#4CAF50" />
+                    </View>
                   </TouchableOpacity>
-                  <View style={styles.reminderTextContainer}>
+                  <View style={[styles.reminderTextContainer, { flex: 1 }]}>
                     <Text style={styles.reminderTitle}>{reminder.title}</Text>
                     <Text style={styles.reminderDateTime}>
                       {reminder.date} {reminder.time}
                     </Text>
                   </View>
-                  <View style={styles.reminderActions}>
-                    <TouchableOpacity
-                      style={styles.starButton}
-                      onPress={() => handleStarReminder(reminder)}
-                    >
-                      <FontAwesome5 
-                        name="star" 
-                        size={20} 
-                        color={starredReminders.includes(reminder.id) ? "#FFD700" : "#ccc"} 
-                        solid={starredReminders.includes(reminder.id)}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.calendarButton}
-                      onPress={handShowCalendar}
-                    >
-                      <FontAwesome5 name="calendar" size={20} color="#666" />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.deleteButton}
-                      onPress={() => {
-                        setReminderToDelete(reminder as Reminder);
-                        setIsDeleteModalVisible(true);
-                      }}
-                    >
-                      <FontAwesome5 name="trash" size={20} color="#ff4444" />
-                    </TouchableOpacity>
-                  </View>
                 </View>
               ))}
-            </ScrollView>
-
-            {/* Completed Section */}
-            <TouchableOpacity 
-              style={styles.reminderHeader}
-              onPress={() => setIsCompletedExpanded(!isCompletedExpanded)}
-            >
-              <Text style={styles.remindersText}>Completed</Text>
-              <MaterialIcons 
-                name={isCompletedExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-                size={24} 
-                color="black" 
-              />
-            </TouchableOpacity>
-
-            {isCompletedExpanded && (
-              <ScrollView style={styles.remindersList}>
-                {completedReminders.map((reminder: {
-                  title: ReactNode;
-                  date: ReactNode;
-                  time: ReactNode;
-                  id: string;
-                }) => (
-                  <View key={reminder.id} style={styles.reminderItem}>
-                    <TouchableOpacity 
-                      style={styles.checkboxContainer}
-                      onPress={() => handleUncompleteReminder(reminder)}
-                    >
-                      <View style={[styles.checkbox, styles.checkedBox]}>
-                        <FontAwesome5 name="check" size={12} color="#4CAF50" />
-                      </View>
-                    </TouchableOpacity>
-                    <View style={[styles.reminderTextContainer, { flex: 1 }]}>
-                      <Text style={styles.reminderTitle}>{reminder.title}</Text>
-                      <Text style={styles.reminderDateTime}>
-                        {reminder.date} {reminder.time}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        )}
+            </>
+          )}
+        </ScrollView>
         <CalendarModal visible={isCalendarVisible} onClose={handleCloseCalendar} reminders={[]} />
       </>
     );
@@ -332,23 +367,32 @@ const HomeScreen = () => {
   }, []);
 
   // Add function to handle checkbox click
-  const handleCheckboxClick = async (reminder: any) => {
+  const handleCheckboxClick = (reminder: any) => {
+    setReminderToComplete(reminder);
+    setIsCompleteModalVisible(true);
+  };
+
+  const handleConfirmComplete = async () => {
     const currentUser = auth.currentUser;
-    if (!currentUser) return;
+    if (!currentUser || !reminderToComplete) return;
 
     try {
       // Add to completed_reminders collection
       await addDoc(collection(db, 'completed'), {
-        title: reminder.title,
-        date: reminder.date,
-        time: reminder.time,
-        categoryID: reminder.categoryID,
+        title: reminderToComplete.title,
+        date: reminderToComplete.date,
+        time: reminderToComplete.time,
+        categoryID: reminderToComplete.categoryID,
         userID: currentUser.uid,
         completedAt: new Date()
       });
 
       // Delete from reminders collection
-      await deleteDoc(doc(db, 'reminders', reminder.id));
+      await deleteDoc(doc(db, 'reminders', reminderToComplete.id));
+
+      // Close modal and clear the reminderToComplete
+      setIsCompleteModalVisible(false);
+      setReminderToComplete(null);
 
       console.log("Reminder marked as completed!");
     } catch (error) {
@@ -435,51 +479,28 @@ const HomeScreen = () => {
           style={styles.tabScrollView}
           contentContainerStyle={styles.tabScrollContent}
         >
-          {['All', 'Work', 'Birthday', 'Occasion', 'Special'].map((tab) => (
+          {categories.map((category) => (
             <TouchableOpacity 
-              key={tab} 
+              key={category.name} 
               style={[
                 styles.tabButton,
-                activeTab === tab && styles.activeTab
+                activeTab === category.name && styles.activeTab
               ]}
-              onPress={() => setActiveTab(tab)}
+              onPress={() => setActiveTab(category.name)}
             >
               <Text style={[
                 styles.tabText,
-                activeTab === tab && styles.activeTabText
+                activeTab === category.name && styles.activeTabText
               ]}>
-                {tab}
+                {category.name}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
-
-        <TouchableOpacity style={styles.moreOptionsButton} onPress={toggleMoreOptions}>
-          <Image source={require('../screen/images/menu-vertical.png')} style={styles.moreOptionsIcon} />
-        </TouchableOpacity>
       </View>
 
-      {isMoreOptionsVisible && (
-        <View style={styles.moreOptionsDropdown}>
-          <TouchableOpacity onPress={() => router.push('/screen/categories')} style={styles.dropdownItem}>
-            <Text style={styles.dropdownText}>See All Categories</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Reminders Section */}
+      {/* Reminders Section - Remove the dropdown header */}
       <View style={styles.remindersContainer}>
-        <TouchableOpacity 
-          style={styles.reminderHeader}
-          onPress={() => setIsRemindersExpanded(!isRemindersExpanded)}
-        >
-          <Text style={styles.remindersText}>Reminders</Text>
-          <MaterialIcons 
-            name={isRemindersExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
-            size={24} 
-            color="black" 
-          />
-        </TouchableOpacity>
         {renderContent()}
       </View>
 
@@ -549,24 +570,12 @@ const HomeScreen = () => {
 
             {isCategoriesExpanded && (
               <View style={styles.categoriesList}>
-                {categories.map((category) => (
-                  <TouchableOpacity key={category.name} style={styles.categoryItem}>
-                    <FontAwesome5 name="list" size={18} color="black" solid />
-                    <Text style={styles.categoryText}>{category.name}</Text>
-                    <Text style={styles.categoryCount}>{category.count}</Text>
-                  </TouchableOpacity>
-                ))}
-                
-                {/* Create New inside categories */}
-                <TouchableOpacity style={styles.categoryItem}>
-                  <FontAwesome5 name="plus" size={18} color="black" solid />
-                  <Text style={styles.categoryText}>Create New</Text>
-                </TouchableOpacity>
-
                 {/* See All Categories Button */}
-                <TouchableOpacity style={styles.categoryItem} 
-                onPress={() => router.push('/screen/categories')}
+                <TouchableOpacity 
+                  style={styles.categoryItem} 
+                  onPress={() => router.push('/screen/categories')}
                 >
+                  <FontAwesome5 name="list" size={18} color="black" solid />
                   <Text style={styles.categoryText}>See All Categories</Text>
                 </TouchableOpacity>
               </View>
@@ -645,6 +654,33 @@ const HomeScreen = () => {
                 onPress={handleDeleteReminder}
               >
                 <Text style={[styles.modalButtonText, styles.deleteButtonText]}>Yes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Complete Confirmation Modal */}
+      <Modal
+        visible={isCompleteModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalText}>Are you sure you want to mark this as completed?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalButton}
+                onPress={() => setIsCompleteModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>No</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.completeButton]}
+                onPress={handleConfirmComplete}
+              >
+                <Text style={[styles.modalButtonText, styles.completeButtonText]}>Yes</Text>
               </TouchableOpacity>
             </View>
           </View>

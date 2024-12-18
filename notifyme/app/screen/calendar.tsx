@@ -6,7 +6,7 @@ import { Calendar as RNCalendar } from 'react-native-calendars';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 import styles from '../styles/calendarstyles';
-import AddReminder from './addreminder';
+import { useRouter } from 'expo-router';
 
 // Add this interface for marked dates
 interface MarkedDates {
@@ -17,6 +17,7 @@ interface MarkedDates {
 }
 
 const CalendarScreen = () => {
+  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [markedDates, setMarkedDates] = useState<MarkedDates>({});
 
@@ -46,6 +47,15 @@ const CalendarScreen = () => {
     fetchReminders();
   }, []);
 
+  // Add date selection handler
+  const handleDayPress = (day: any) => {
+    // Navigate to AddReminder screen with the selected date
+    router.push({
+      pathname: '/screen/addreminder',
+      params: { selectedDate: day.dateString }
+    });
+  };
+
   return (
     <View style={styles.container}>
       <RNCalendar
@@ -61,11 +71,7 @@ const CalendarScreen = () => {
           arrowColor: '#000',
         }}
         markedDates={markedDates}
-      />
-
-      <AddReminder 
-        isExpanded={isExpanded}
-        setIsExpanded={setIsExpanded}
+        onDayPress={handleDayPress}
       />
 
       {/* Bottom Tab Bar */}

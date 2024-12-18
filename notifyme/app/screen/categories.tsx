@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, ActionSheetIOS, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons'; // Import Material Icons
-import { getFirestore, collection, query, getDocs, where, addDoc } from 'firebase/firestore'; // Import Firestore
+import { getFirestore, collection, query, getDocs, where, addDoc, deleteDoc, doc, getDoc } from 'firebase/firestore'; // Import Firestore
 import { getAuth } from 'firebase/auth'; // Add this import
 
 type Category = {
@@ -24,6 +24,11 @@ const CategoriesScreen = () => {
     const [newCategoryName, setNewCategoryName] = useState('');
     const auth = getAuth();
     const db = getFirestore();
+    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
+    const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+    const [selectedCategoryReminders, setSelectedCategoryReminders] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -95,10 +100,124 @@ const CategoriesScreen = () => {
         }
     };
 
+    const showOptions = (category: Category, event: any) => {
+        const { pageY, pageX } = event.nativeEvent;
+        setDropdownPosition({ x: pageX - 100, y: pageY });
+        setSelectedCategory(category);
+        setShowDropdown(true);
+    };
+
+    const fetchRemindersForCategory = async (categoryId: string) => {
+        try {
+            const remindersRef = collection(db, 'reminders');
+            const q = query(remindersRef, where("categoryId", "==", categoryId));
+            const querySnapshot = await getDocs(q);
+            
+            const reminders = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            setSelectedCategoryReminders(reminders);
+        } catch (error) {
+            console.error('Error fetching reminders:', error);
+            Alert.alert('Error', 'Failed to fetch reminders');
+        }
+    };
+
+    const DropdownMenu = () => (
+        <Modal
+            visible={showDropdown}
+            transparent={true}
+            onRequestClose={() => setShowDropdown(false)}
+        >
+            <TouchableOpacity 
+                style={styles.dropdownOverlay} 
+                onPress={() => setShowDropdown(false)}
+            >
+                <View style={[styles.dropdownMenu, { top: dropdownPosition.y, left: dropdownPosition.x }]}>
+                    <TouchableOpacity 
+                        style={styles.dropdownItem}
+                        onPress={() => {
+                            if (selectedCategory) {
+                                fetchRemindersForCategory(selectedCategory.id);
+                                setIsViewModalVisible(true);
+                            }
+                            setShowDropdown(false);
+                        }}
+                    >
+                        <Text>View</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.dropdownItem}
+                        onPress={() => {
+                            setShowDropdown(false);
+                        }}
+                    >
+                        <Text>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={[styles.dropdownItem, styles.deleteItem]}
+                        onPress={() => {
+                            setShowDropdown(false);
+                        }}
+                    >
+                        <Text style={styles.deleteText}>Delete</Text>
+                    </TouchableOpacity>
+                </View>
+            </TouchableOpacity>
+        </Modal>
+    );
+
+    const ViewCategoryModal = () => (
+        <Modal
+            visible={isViewModalVisible}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setIsViewModalVisible(false)}
+        >
+            <View style={styles.viewModalContainer}>
+                <View style={styles.viewModalContent}>
+                    <View style={styles.viewModalHeader}>
+                        <Text style={styles.viewModalTitle}>
+                            {selectedCategory?.name} Reminders
+                        </Text>
+                        <TouchableOpacity 
+                            onPress={() => setIsViewModalVisible(false)}
+                            style={styles.closeButton}
+                        >
+                            <MaterialIcons name="close" size={24} color="black" />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    {selectedCategoryReminders.length === 0 ? (
+                        <Text style={styles.noRemindersText}>No reminders in this category</Text>
+                    ) : (
+                        <FlatList
+                            data={selectedCategoryReminders}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => (
+                                <View style={styles.reminderItem}>
+                                    <Text style={styles.reminderTitle}>{item.title}</Text>
+                                    <Text style={styles.reminderDate}>
+                                        {new Date(item.date.toDate()).toLocaleDateString()}
+                                    </Text>
+                                </View>
+                            )}
+                        />
+                    )}
+                </View>
+            </View>
+        </Modal>
+    );
+
     const renderCategory = ({ item }: { item: Category }) => (
         <View style={styles.categoryItem}>
             <Text style={styles.categoryName}>{item.name}</Text>
-            <TouchableOpacity onPress={() => { /* Handle more options */ }} style={styles.moreOptionsButton}>
+            <TouchableOpacity 
+                onPress={(event) => showOptions(item, event)} 
+                style={styles.moreOptionsButton}
+            >
                 <MaterialIcons name="more-vert" size={24} color="black" />
             </TouchableOpacity>
         </View>
@@ -160,6 +279,8 @@ const CategoriesScreen = () => {
                 <MaterialIcons name="add" size={24} color="black" />
                 <Text style={styles.createButtonText}> Create New</Text>
             </TouchableOpacity>
+            <DropdownMenu />
+            <ViewCategoryModal />
         </View>
     );
 };
@@ -260,6 +381,81 @@ const styles = StyleSheet.create({
         backgroundColor: '#47d0e6',
         width: '45%',
         alignItems: 'center',
+    },
+    dropdownOverlay: {
+        flex: 1,
+        backgroundColor: 'transparent',
+    },
+    dropdownMenu: {
+        position: 'absolute',
+        backgroundColor: 'white',
+        borderRadius: 5,
+        padding: 5,
+        width: 120,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    dropdownItem: {
+        padding: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    deleteItem: {
+        borderBottomWidth: 0,
+    },
+    deleteText: {
+        color: 'red',
+    },
+    viewModalContainer: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    viewModalContent: {
+        backgroundColor: 'white',
+        width: '90%',
+        maxHeight: '80%',
+        borderRadius: 10,
+        padding: 20,
+    },
+    viewModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    viewModalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    closeButton: {
+        padding: 5,
+    },
+    reminderItem: {
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    reminderTitle: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    reminderDate: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 5,
+    },
+    noRemindersText: {
+        textAlign: 'center',
+        marginTop: 20,
+        color: '#666',
     },
 });
 

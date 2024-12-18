@@ -199,6 +199,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  // ... existing styles ...
+
+completeButton: {
+  backgroundColor: '#4CAF50',  // Green color for completion
+  borderColor: '#4CAF50',
+},
+
+completeButtonText: {
+  color: '#FFFFFF',  // White text
+},
 
 
 
@@ -461,7 +471,6 @@ const styles = StyleSheet.create({
   
   reminderActions: {
     flexDirection: 'row',
-    gap: 12,
     paddingLeft: 10,
   },
   
