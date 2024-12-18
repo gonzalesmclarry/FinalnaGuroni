@@ -11,6 +11,7 @@ const RegisterScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const router = useRouter(); // Initialize the router
 
   const handleRegister = async () => {
@@ -40,30 +41,39 @@ const RegisterScreen = () => {
     }
   };
   
-  
+  const handleTextInputFocus = () => {
+    setIsTyping(true);
+  };
+
+  const handleTextInputBlur = () => {
+    setIsTyping(false);
+  };
 
   return (
     <View style={styles.container}>
-      <Image source={require('../screen/images/logo.png')} style={styles.logo} />
-
+      {!isTyping && (
+        <Image source={require('../screen/images/logo.png')} style={styles.logo} />
+      )}
   
-      <Text style={styles.title}>Let’s Get Started!</Text>
-
+      <Text style={styles.title}>Let's Get Started!</Text>
 
       <TextInput
         placeholder="Username"
         placeholderTextColor="#C0C0C0"
         value={username}
         onChangeText={setUsername}
+        onFocus={handleTextInputFocus}
+        onBlur={handleTextInputBlur}
         style={styles.input}
       />
 
-  
       <TextInput
         placeholder="Email"
         placeholderTextColor="#C0C0C0"
         value={email}
         onChangeText={setEmail}
+        onFocus={handleTextInputFocus}
+        onBlur={handleTextInputBlur}
         style={styles.input}
       />
 
@@ -73,6 +83,8 @@ const RegisterScreen = () => {
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+        onFocus={handleTextInputFocus}
+        onBlur={handleTextInputBlur}
         style={styles.input}
       />
 
@@ -82,6 +94,8 @@ const RegisterScreen = () => {
         secureTextEntry
         value={confirmPassword}
         onChangeText={setConfirmPassword}
+        onFocus={handleTextInputFocus}
+        onBlur={handleTextInputBlur}
         style={styles.input}
       />
 
