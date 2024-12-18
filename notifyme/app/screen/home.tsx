@@ -35,7 +35,7 @@ const HomeScreen = () => {
   const [completedReminders, setCompletedReminders] = useState([]);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [reminderToDelete, setReminderToDelete] = useState<Reminder | null>(null);
-
+  const [starredReminders, setStarredReminders] = useState<string[]>([]);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -76,7 +76,22 @@ const HomeScreen = () => {
     return () => unsubscribe();
   }, [activeTab]);
 
+  useEffect(() => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
 
+    const starredQuery = query(
+      collection(db, 'star_reminder'),
+      where('userID', '==', currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(starredQuery, (snapshot) => {
+      const starredIds = snapshot.docs.map(doc => doc.data().originalReminderId);
+      setStarredReminders(starredIds);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handShowCalendar = () => {
     setIsCalendarVisible(true);
@@ -91,16 +106,36 @@ const HomeScreen = () => {
     if (!currentUser) return;
 
     try {
-      await addDoc(collection(db, 'star_reminder'), {
-        title: reminder.title,
-        date: reminder.date,
-        time: reminder.time,
-        categoryID: reminder.categoryID, // Ensure this is part of the reminder object
-        userID: currentUser.uid,
-      });
-      console.log("Reminder starred successfully!");
+      // Check if reminder is already starred
+      const starredQuery = query(
+        collection(db, 'star_reminder'),
+        where('originalReminderId', '==', reminder.id),
+        where('userID', '==', currentUser.uid)
+      );
+      
+      const querySnapshot = await getDocs(starredQuery);
+      
+      if (querySnapshot.empty) {
+        // Star the reminder
+        await addDoc(collection(db, 'star_reminder'), {
+          title: reminder.title,
+          date: reminder.date,
+          time: reminder.time,
+          categoryID: reminder.categoryID,
+          userID: currentUser.uid,
+          originalReminderId: reminder.id,
+          createdAt: new Date()
+        });
+        alert('Reminder starred successfully!');
+      } else {
+        // Unstar the reminder
+        const docToDelete = querySnapshot.docs[0];
+        await deleteDoc(doc(db, 'star_reminder', docToDelete.id));
+        alert('Reminder unstarred successfully!');
+      }
     } catch (error) {
-      console.error("Error starring reminder:", error);
+      console.error("Error toggling star reminder:", error);
+      alert('Error updating reminder star status');
     }
   };
 
@@ -165,7 +200,12 @@ const HomeScreen = () => {
                       style={styles.starButton}
                       onPress={() => handleStarReminder(reminder)}
                     >
-                      <FontAwesome5 name="star" size={20} color="#ccc" />
+                      <FontAwesome5 
+                        name="star" 
+                        size={20} 
+                        color={starredReminders.includes(reminder.id) ? "#FFD700" : "#ccc"} 
+                        solid={starredReminders.includes(reminder.id)}
+                      />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.calendarButton}
@@ -209,7 +249,10 @@ const HomeScreen = () => {
                   id: string;
                 }) => (
                   <View key={reminder.id} style={styles.reminderItem}>
-                    <TouchableOpacity style={styles.checkboxContainer}>
+                    <TouchableOpacity 
+                      style={styles.checkboxContainer}
+                      onPress={() => handleUncompleteReminder(reminder)}
+                    >
                       <View style={[styles.checkbox, styles.checkedBox]}>
                         <FontAwesome5 name="check" size={12} color="#4CAF50" />
                       </View>
@@ -341,6 +384,30 @@ const HomeScreen = () => {
     }
   };
 
+  // Add this function to handle uncompleting a reminder
+  const handleUncompleteReminder = async (completedReminder: any) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      // First, add back to reminders collection
+      await addDoc(collection(db, 'reminders'), {
+        title: completedReminder.title,
+        date: completedReminder.date,
+        time: completedReminder.time,
+        categoryID: completedReminder.categoryID,
+        userID: currentUser.uid
+      });
+
+      // Then delete from completed collection
+      await deleteDoc(doc(db, 'completed', completedReminder.id));
+
+      alert('Reminder moved back to active list!');
+    } catch (error) {
+      console.error("Error uncompleting reminder:", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Dim Background Overlay */}
@@ -396,9 +463,6 @@ const HomeScreen = () => {
         <View style={styles.moreOptionsDropdown}>
           <TouchableOpacity onPress={() => router.push('/screen/categories')} style={styles.dropdownItem}>
             <Text style={styles.dropdownText}>See All Categories</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout} style={styles.dropdownItem}>
-            <Text style={styles.dropdownText}>Logout</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -533,13 +597,22 @@ const HomeScreen = () => {
               <Text style={styles.sidebarButtonText}>Settings</Text>
             </TouchableOpacity>
 
-            {/* Add Feedback button at the bottom */}
+            {/* Add Feedback button */}
             <TouchableOpacity 
               style={[styles.sidebarButton, styles.feedbackButton]}
               onPress={() => router.push('screen/feedback')}
             >
               <FontAwesome5 name="comment" size={22} color="black" solid />
               <Text style={styles.sidebarButtonText}>Feedback</Text>
+            </TouchableOpacity>
+
+            {/* Add Logout button */}
+            <TouchableOpacity 
+              style={[styles.sidebarButton, styles.feedbackButton]}
+              onPress={handleLogout}
+            >
+              <MaterialIcons name="logout" size={22} color="black" />
+              <Text style={styles.sidebarButtonText}>Logout</Text>
             </TouchableOpacity>
 
           </ScrollView>
