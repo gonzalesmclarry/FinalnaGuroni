@@ -7,7 +7,6 @@ import styles from '../styles/profilestyles';
 import { MaterialIcons } from '@expo/vector-icons';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const ProfileScreen = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -33,6 +32,8 @@ const ProfileScreen = () => {
             setUsername(userDoc.data().username);
             if (userDoc.data().profileImage) {
               setProfileImage({ uri: userDoc.data().profileImage });
+            } else {
+              setProfileImage(require('./images/avatar.png'));
             }
           }
 
@@ -60,24 +61,50 @@ const ProfileScreen = () => {
     fetchUserData();
   }, []);
 
-  // Image picker function
+  // Image picker function with Firebase Storage upload
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      alert('Sorry, we need camera roll permissions to make this work!');
-      return;
-    }
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        alert('Sorry, we need camera roll permissions to make this work!');
+        return;
+      }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5, // Reduced quality to help with upload
+      });
 
-    if (!result.canceled) {
-      setProfileImage({ uri: result.assets[0].uri });
+      if (!result.canceled) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          alert('Please login first');
+          return;
+        }
+
+        // First update the local state to show immediate feedback
+        setProfileImage({ uri: result.assets[0].uri });
+
+        // Create a reference to the users collection
+        const userRef = doc(db, 'users', currentUser.uid);
+
+        try {
+          // Update the user document with the image URI
+          await updateDoc(userRef, {
+            profileImage: result.assets[0].uri
+          });
+          console.log('Profile image updated successfully');
+        } catch (error) {
+          console.error('Error updating user document:', error);
+          alert('Failed to update profile image');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      alert('Failed to pick image. Please try again.');
     }
   };
 
