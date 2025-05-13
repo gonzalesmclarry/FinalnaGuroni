@@ -1,172 +1,291 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 
+// Get device dimensions
+const { width } = Dimensions.get('window');
+
+const colors = {
+  primary: '#0B6477',
+  secondary: '#5CD3C8',
+  background: '#A8D8E4',
+  cardBackground: '#C5DEE3',
+  text: '#333333',
+  white: '#FFFFFF',
+  lightGray: '#F0F0F0',
+  shadow: 'rgba(0, 0, 0, 0.1)',
+  pending: '#FF9500',
+  completed: '#34C759',
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#A8D8E4', // Background color
-    alignItems: 'center',
-    paddingTop: 100,
+    backgroundColor: colors.background,
+    paddingTop: 40,
   },
   
-  bottomTabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#A8D8E4',
-    paddingVertical: 25,
-    width: '100%',
-    position: 'absolute',
-    bottom: 3,
+  // Calendar Header Styles
+  headerSection: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginTop: 30,
+    marginBottom: 15,
   },
-
-  bottomTabButtonLeft: {
-    position: 'absolute',
-    left: 25, 
-    alignItems: 'center',
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: colors.primary,
+    marginTop: 5,
+  },
   
-  },
-  bottomTabButtonCenter: {
-    position: 'absolute',
-    left: '45%',
-    alignItems: 'center',
-  },
-
-  bottomTabButtonRight: {
-    position: 'absolute',
-    right: 20, 
-    alignItems: 'center',
-  },
-
-  bottomTabText: {
-    marginRight: -15,
-    color: '#000',
-    width: 64,
-    fontSize: 15,
-  },
-
-  bottomTabIcon: {
-    width: 25,
-    height: 24,
-  },
-
-
-  
-  iconContainer: {
-    alignItems: 'center', // Centers icons and text vertically
-  },
-  calendarText: {
-    color: 'black'
+  // Calendar Styles
+  calendarContainer: {
+    width: '90%',
+    alignSelf: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 15,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 20,
   },
   calendar: {
-    width: 350,
-    backgroundColor: '#A8D8E4',
-
+    borderRadius: 10,
+    overflow: 'hidden',
   },
-  noReminderText: {
-    marginTop: 20,
-    textAlign: 'center',
-    color: '#000',
+  dateDisplay: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  
+  // Filter Section Styles
+  filterSection: {
+    width: '90%',
+    alignSelf: 'center',
+    backgroundColor: colors.cardBackground,
+    padding: 20,
+    borderRadius: 15,
+    marginVertical: 10,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  filterLabel: {
     fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
+  filterContent: {
+    paddingVertical: 10,
+  },
+  filterCategories: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    gap: 10,
+  },
+  categoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: colors.shadow,
+    borderRadius: 20,
+  },
+  categoryChipSelected: {
+    backgroundColor: colors.secondary,
+  },
+  categoryText: {
+    color: colors.text,
+    fontSize: 13,
+  },
+  categoryTextSelected: {
+    color: colors.white,
+    fontWeight: '500',
+  },
+
+  // Section Title
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 25,
+    marginBottom: 15,
+    paddingHorizontal: 25,
+    color: colors.text,
+  },
+  
+  // Reminder Section Styles
+  reminderSection: {
+    width: '90%',
+    alignSelf: 'center',
+    marginBottom: 30,
+  },
+  reminderCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reminderIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  reminderContent: {
+    flex: 1,
+  },
+  reminderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  reminderMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 5,
+  },
+  reminderTime: {
+    fontSize: 12,
+    color: colors.text,
+    opacity: 0.7,
+  },
+  reminderStatus: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statusCompleted: {
+    color: colors.completed,
+  },
+  statusPending: {
+    color: colors.pending,
+  },
+  emptyState: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 15,
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    color: colors.text,
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  
+  // Add Button
   addButton: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 90,
     right: 20,
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#0B647',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  addButtonText: {
-    fontSize: 35,
-    color: '#000',
-  },
-  reminderCard: {
-    position: 'absolute',
-    bottom: 100,
-    width: '90%',
-    backgroundColor: '#7FC7D9', // Lighter blue color
-    borderRadius: 15,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 5,
   },
-  reminderInput: {
-    backgroundColor: '#A8D8E4',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    color: '#000',
-  },
-  categoryRow: {
+  
+  // Bottom Tab Bar Styles
+  bottomTabBar: {
     flexDirection: 'row',
+    backgroundColor: colors.white,
+    width: '92%',
+    position: 'absolute',
+    bottom: 15,
+    left: '4%',
     alignItems: 'center',
-    gap: 10,
-  },
-  categoryButton: {
-    backgroundColor: '#A8D8E4',
-    borderRadius: 15,
-    paddingVertical: 8,
+    justifyContent: 'space-around',
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    height: 65,
     paddingHorizontal: 15,
   },
-  categoryButtonText: {
-    color: '#000',
-  },
-  calendarButton: {
-    backgroundColor: '#A8D8E4',
-    borderRadius: 15,
-    padding: 8,
-  },
-  categoryIcon: {
-    width: 20,
-    height: 20,
-  },
-  modalOverlay: {
+  tabButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    height: 50,
+    position: 'relative',
   },
-  modalContent: {
-    backgroundColor: '#A8D8E4',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '50%',
+  tabIconContainer: {
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 21,
   },
-  categoryItem: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#7FC7D9',
+  tabIconContainerActive: {
+    backgroundColor: colors.primary,
   },
-  categoryItemText: {
-    fontSize: 16,
-    color: '#000',
+  tabIcon: {
+    width: 22,
+    height: 22,
   },
-  createNewButton: {
-    paddingVertical: 15,
-    marginTop: 10,
+  tabText: {
+    color: colors.text,
+    fontSize: 10,
+    marginTop: 3,
+    opacity: 0.7,
   },
-  createNewButtonText: {
-    fontSize: 16,
-    color: '#0B6477',
-    fontWeight: 'bold',
+  tabTextActive: {
+    color: colors.primary,
+    fontWeight: '600',
+    opacity: 1,
+  },
+  iconContainer: {
+    alignItems: 'center',
+  },
+  centerTabButton: {
+    width: 60,
+    height: 60,
+    backgroundColor: colors.secondary,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    bottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  centerTabIcon: {
+    width: 24,
+    height: 24,
+    tintColor: colors.white,
   },
 });
 

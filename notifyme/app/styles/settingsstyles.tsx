@@ -1,112 +1,185 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#A8D8E4',
+    backgroundColor: '#f0f8fa',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    marginTop: 50,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    paddingTop: 50,
+    paddingBottom: 15,
   },
   backButton: {
     padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     marginLeft: 16,
+    color: '#333',
   },
-  content: {
+  scrollContainer: {
     flex: 1,
-    padding: 16,
-    paddingTop: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
-  contentText: {
-    fontSize: 30,
-    fontWeight: 'bold',
+  sectionTitleContainer: {
+    marginTop: 24,
+    marginBottom: 8,
   },
-  menuItem: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#47d0e6',
+    marginBottom: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    width: '100%',
+  },
+  settingsGroup: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  boldText: {
+  settingItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#47d0e6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  settingItemText: {
     fontSize: 16,
+    color: '#333',
   },
-
-
+  versionText: {
+    fontSize: 14,
+    color: '#888',
+  },
+  switch: {
+    transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }],
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    backgroundColor: '#ff6b6b',
+    borderRadius: 12,
+    padding: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 20,
+    marginHorizontal: 20,
+  },
+  signOutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-},
-
-modalContent: {
-  backgroundColor: 'white',
-  borderRadius: 15,
-  padding: 20,
-  width: '80%',
-},
-
-modalTitle: {
-  fontSize: 18,
-  fontWeight: 'bold',
-  marginBottom: 15,
-  textAlign: 'center',
-},
-
-input: {
-  borderWidth: 1,
-  borderColor: '#ccc',
-  borderRadius: 5,
-  padding: 10,
-  marginVertical: 10,
-},
-
-modalButtons: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  marginTop: 20,
-},
-
-modalButton: {
-  flex: 1,
-  padding: 10,
-  borderRadius: 5,
-  marginHorizontal: 5,
-},
-
-cancelButton: {
-  backgroundColor: '#f2f2f2',
-},
-
-updateButton: {
-  backgroundColor: '#47d0e6',
-},
-
-cancelButtonText: {
-  color: 'black',
-  textAlign: 'center',
-  fontWeight: 'bold',
-},
-
-updateButtonText: {
-  color: 'white',
-  textAlign: 'center',
-  fontWeight: 'bold',
-},
-
-
-
-
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 24,
+    width: width * 0.85,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    marginHorizontal: 6,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f2f2f2',
+    borderWidth: 1, 
+    borderColor: '#e0e0e0',
+  },
+  updateButton: {
+    backgroundColor: '#47d0e6',
+  },
+  cancelButtonText: {
+    color: '#555',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  updateButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 });
 
 export default styles;

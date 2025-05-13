@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput, Alert, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, TextInput, Alert, Switch, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FontAwesome5 } from '@expo/vector-icons';
-import styles from '../styles/settingsstyles';
 import { auth, db } from '../../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { updatePassword } from 'firebase/auth';
+import styles from '../styles/settingsstyles';
 
 const SettingsScreen = () => {
   const router = useRouter();
@@ -76,6 +76,34 @@ const SettingsScreen = () => {
     }
   };
 
+  const renderSectionTitle = (title: string) => (
+    <View style={styles.sectionTitleContainer}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.divider} />
+    </View>
+  );
+
+  const renderSettingItem = (
+    title: string, 
+    icon: string, 
+    onPress: (() => void) | undefined, 
+    rightElement: React.ReactNode = null
+  ) => (
+    <TouchableOpacity 
+      style={styles.settingItem}
+      onPress={onPress}
+      disabled={onPress === undefined}
+    >
+      <View style={styles.settingItemLeft}>
+        <View style={styles.iconContainer}>
+          <FontAwesome5 name={icon} size={16} color="#FFF" />
+        </View>
+        <Text style={styles.settingItemText}>{title}</Text>
+      </View>
+      {rightElement || (onPress && <FontAwesome5 name="chevron-right" size={18} color="#555" />)}
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -84,129 +112,130 @@ const SettingsScreen = () => {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <FontAwesome5 name="arrow-left" size={24} color="black" />
+          <FontAwesome5 name="arrow-left" size={22} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
 
-      {/* Profile Settings */}
-      <View style={styles.content}>
-        <Text style={styles.contentText}>Profile</Text>
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => setIsUsernameModalVisible(true)}
-        >
-          <Text style={styles.boldText}>Change Username</Text>
-          <FontAwesome5 name="chevron-right" size={20} color="black" />
-        </TouchableOpacity>
-
-        {/* Username Modal */}
-        <Modal
-          visible={isUsernameModalVisible}
-          transparent={true}
-          animationType="slide"
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Change Username</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter new username"
-                value={newUsername}
-                onChangeText={setNewUsername}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => {
-                    setIsUsernameModalVisible(false);
-                    setNewUsername('');
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.updateButton]}
-                  onPress={handleUpdateUsername}
-                >
-                  <Text style={styles.updateButtonText}>Update</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => setIsPasswordModalVisible(true)}
-        >
-          <Text style={styles.boldText}>Change Password</Text>
-          <FontAwesome5 name="chevron-right" size={20} color="black" />
-        </TouchableOpacity>
-
-        {/* Password Modal */}
-        <Modal
-          visible={isPasswordModalVisible}
-          transparent={true}
-          animationType="slide"
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Change Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter new password"
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry={true}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => {
-                    setIsPasswordModalVisible(false);
-                    setNewPassword('');
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.updateButton]}
-                  onPress={handleUpdatePassword}
-                >
-                  <Text style={styles.updateButtonText}>Update</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      </View>
-
-      {/* Files Settings */}
-      <View style={styles.content}>
-        <Text style={[styles.contentText, {marginTop: -70}]}>Files</Text>
-        <TouchableOpacity 
-          style={styles.menuItem}
-          onPress={() => router.push('screen/deletedfiles')}
-        >
-          <Text style={styles.boldText}>Deleted Files</Text>
-          <FontAwesome5 name="chevron-right" size={20} color="black" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Notifications Settings */}
-      <View style={styles.content}>
-        <Text style={[styles.contentText, {marginTop: -170}]}>Notifications</Text>
-        <View style={styles.menuItem}>
-          <Text style={styles.boldText}>Enable Notifications</Text>
-          <Switch
-            value={isNotificationsEnabled}
-            onValueChange={setIsNotificationsEnabled}
-            trackColor={{ false: "#767577", true: "#81b0ff" }}
-            thumbColor={isNotificationsEnabled ? "#f5dd4b" : "#f4f3f4"}
-          />
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Profile Section */}
+        {renderSectionTitle('Profile')}
+        <View style={styles.settingsGroup}>
+          {renderSettingItem('Change Username', 'user-edit', () => setIsUsernameModalVisible(true))}
+          {renderSettingItem('Change Password', 'lock', () => setIsPasswordModalVisible(true))}
         </View>
-      </View>
+
+        {/* Files Section */}
+        {renderSectionTitle('Files')}
+        <View style={styles.settingsGroup}>
+          {renderSettingItem('Deleted Files', 'trash-restore', () => router.push('screen/deletedfiles'))}
+        </View>
+
+        {/* Notification Section */}
+        {renderSectionTitle('Notifications')}
+        <View style={styles.settingsGroup}>
+            {renderSettingItem('Push Notifications', 'bell', undefined, 
+            <Switch
+              value={isNotificationsEnabled}
+              onValueChange={setIsNotificationsEnabled}
+              trackColor={{ false: "#e0e0e0", true: "#47d0e6" }}
+              thumbColor={isNotificationsEnabled ? "#fff" : "#f4f3f4"}
+              ios_backgroundColor="#e0e0e0"
+              style={styles.switch}
+            />
+            )}
+        </View>
+
+        {/* About Section */}
+        {renderSectionTitle('About')}
+        <View style={styles.settingsGroup}>
+          {renderSettingItem('Privacy Policy', 'shield-alt', () => {})}
+          {renderSettingItem('Terms of Service', 'file-contract', () => {})}
+          {renderSettingItem('App Version', 'info-circle', undefined, 
+            <Text style={styles.versionText}>1.0.0</Text>
+          )}
+        </View>
+
+        {/* Sign Out */}
+        <TouchableOpacity style={styles.signOutButton}>
+          <FontAwesome5 name="sign-out-alt" size={16} color="#fff" />
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Username Modal */}
+      <Modal
+        visible={isUsernameModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Username</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter new username"
+              value={newUsername}
+              onChangeText={setNewUsername}
+              autoCapitalize="none"
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setIsUsernameModalVisible(false);
+                  setNewUsername('');
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.updateButton]}
+                onPress={handleUpdateUsername}
+              >
+                <Text style={styles.updateButtonText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Password Modal */}
+      <Modal
+        visible={isPasswordModalVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter new password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={true}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setIsPasswordModalVisible(false);
+                  setNewPassword('');
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.updateButton]}
+                onPress={handleUpdatePassword}
+              >
+                <Text style={styles.updateButtonText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

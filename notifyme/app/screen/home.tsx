@@ -8,7 +8,7 @@ import {
   ScrollView,
   Modal,
 } from "react-native";
-import { Link, router, useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import styles from "../styles/homestyles";
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import AddReminder from "./addreminder";
@@ -24,9 +24,12 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../../firebase";
 import CalendarModal from "./CalendarScreen";
-import { bundleResourceIO } from "@tensorflow/tfjs-react-native";
-import * as tf from "@tensorflow/tfjs";
+//import { bundleResourceIO } from "@tensorflow/tfjs-react-native";
+//import "@tensorflow/tfjs-react-native";
+//import * as tf from "@tensorflow/tfjs";
 //import * as tf from "@tensorflow/tfjs-react-native";
+import { prepareTfjs, tf } from "../../lib/tensorflow-helper";
+
 // Interface for Reminder type
 interface Reminder {
   id: string;
@@ -38,6 +41,7 @@ interface Reminder {
 }
 
 const HomeScreen = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("All");
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [hasReminders, setHasReminders] = useState(false);
@@ -131,22 +135,23 @@ const HomeScreen = () => {
   };
   // Veryfying TensorFlow.js is ready
   useEffect(() => {
-    const loadTensorFlow = async () => {
+    const loadTF = async () => {
       try {
-        await tf.ready();
-        console.log("TensorFlow.js is ready!");
-      } catch (error) {
-        console.error("Error loading TensorFlow.js:", error);
+        await prepareTfjs();
+        // You can now use tf.* here
+      } catch (err) {
+        console.error("Error loading TensorFlow.js:", err);
       }
     };
 
-    loadTensorFlow();
+    loadTF();
   }, []);
 
   // Revised interfaces for type safety
   interface ReminderData {
     time: string;
     categoryID: string;
+    date: string;
   }
 
   interface CategoryMapping {
@@ -173,6 +178,7 @@ const HomeScreen = () => {
             reminder &&
             reminder.time &&
             reminder.categoryID &&
+            reminder.date &&
             categoryMapping.hasOwnProperty(reminder.categoryID)
         )
         .map((reminder) => {
@@ -188,8 +194,10 @@ const HomeScreen = () => {
           if (period === "PM" && hour < 12) hour += 12;
           if (period === "AM" && hour === 12) hour = 0;
 
+          const day = new Date(reminder.date).getDay(); // 0-6
+
           return {
-            input: [hour / 24, minute / 60],
+            input: [hour / 24, minute / 60, day / 6],
             output: categoryMapping[reminder.categoryID],
           };
         })
@@ -206,7 +214,6 @@ const HomeScreen = () => {
       const inputData = processedData.map((item) => item.input);
       const rawOutputData = processedData.map((item) => item.output);
 
-      // Clean and validate output data
       const cleanedOutputData = rawOutputData
         .map((v) => parseInt(String(v), 10))
         .filter((v) => !isNaN(v));
@@ -216,9 +223,6 @@ const HomeScreen = () => {
         return null;
       }
 
-      console.log("Processed Input Data:", inputData);
-      console.log("Processed Output Data:", cleanedOutputData);
-
       const xs = tf.tensor2d(inputData);
       const ys = tf.oneHot(
         tf.tensor1d(cleanedOutputData, "int32"),
@@ -227,7 +231,7 @@ const HomeScreen = () => {
 
       const model = tf.sequential({
         layers: [
-          tf.layers.dense({ units: 8, activation: "relu", inputShape: [2] }),
+          tf.layers.dense({ units: 8, activation: "relu", inputShape: [3] }),
           tf.layers.dense({
             units: Object.keys(categoryMapping).length,
             activation: "softmax",
@@ -241,27 +245,20 @@ const HomeScreen = () => {
         metrics: ["accuracy"],
       });
 
-      try {
-        await model.fit(xs, ys, {
-          epochs: 50,
-          batchSize: 4,
-          shuffle: true,
-          verbose: 1,
-        });
+      await model.fit(xs, ys, {
+        epochs: 50,
+        batchSize: 4,
+        shuffle: true,
+        verbose: 1,
+      });
 
-        xs.dispose();
-        ys.dispose();
+      xs.dispose();
+      ys.dispose();
 
-        console.log("Model trained successfully.");
-        return model;
-      } catch (trainError) {
-        console.error("Training error:", trainError);
-        xs.dispose();
-        ys.dispose();
-        return null;
-      }
+      console.log("Model trained successfully.");
+      return model;
     } catch (error) {
-      console.error("Model creation error:", error);
+      console.error("Model creation or training error:", error);
       return null;
     }
   };
@@ -277,7 +274,6 @@ const HomeScreen = () => {
         return;
       }
 
-      // Fetch user reminders from Firestore
       const remindersQuery = query(
         collection(db, "reminders"),
         where("userID", "==", currentUser.uid)
@@ -285,18 +281,17 @@ const HomeScreen = () => {
       const querySnapshot = await getDocs(remindersQuery);
       const remindersData = querySnapshot.docs.map((doc) => doc.data());
 
-      console.log("User Reminders:", remindersData);
-
       const validRemindersData = remindersData
-        .filter((doc: any) => doc.time && doc.categoryID)
+        .filter((doc: any) => doc.time && doc.categoryID && doc.date)
         .map((doc: any) => ({
           time: doc.time,
           categoryID: doc.categoryID,
+          date: doc.date,
         }));
 
       if (validRemindersData.length < 2) {
         alert(
-          "You need at least 2 valid reminders (with time and category) to get AI suggestions."
+          "You need at least 2 valid reminders (with time, date, and category) to get AI suggestions."
         );
         return;
       }
@@ -321,6 +316,7 @@ const HomeScreen = () => {
       const now = new Date();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
+      const currentDay = now.getDay(); // 0 (Sun) to 6 (Sat)
 
       const timeOptions = [
         [currentHour, currentMinute],
@@ -334,13 +330,13 @@ const HomeScreen = () => {
       let bestSuggestion = null;
       let highestConfidence = 0;
 
-      for (const time of timeOptions) {
-        const [hour, minute] = time;
-        const inputTensor = tf.tensor2d([[hour / 24, minute / 60]]);
+      for (const [hour, minute] of timeOptions) {
+        const inputTensor = tf.tensor2d([
+          [hour / 24, minute / 60, currentDay / 6],
+        ]);
 
         try {
           const prediction = model.predict(inputTensor) as tf.Tensor;
-
           const predictionData = await prediction.data();
           const maxConfidence = Math.max(...predictionData);
           const predictedIndex = predictionData.indexOf(maxConfidence);
@@ -351,10 +347,21 @@ const HomeScreen = () => {
             const formattedHour = hour % 12 || 12;
             const period = hour >= 12 ? "PM" : "AM";
             const formattedMinute = minute.toString().padStart(2, "0");
+            const weekdayNames = [
+              "Sunday",
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+            ];
+            const weekday = weekdayNames[currentDay];
 
             bestSuggestion = {
               category: categoryIndices[predictedIndex] || "Other",
               time: `${formattedHour}:${formattedMinute} ${period}`,
+              day: weekday,
               confidence: (maxConfidence * 100).toFixed(1),
             };
           }
@@ -369,7 +376,7 @@ const HomeScreen = () => {
 
       if (bestSuggestion) {
         alert(
-          `AI Suggestion:\nCategory: "${bestSuggestion.category}"\nTime: ${bestSuggestion.time}\nConfidence: ${bestSuggestion.confidence}%`
+          `AI Suggestion:\nCategory: "${bestSuggestion.category}"\nDay: ${bestSuggestion.day}\nTime: ${bestSuggestion.time}\nConfidence: ${bestSuggestion.confidence}%`
         );
       } else {
         alert("AI couldn't generate a confident suggestion. Try again later.");

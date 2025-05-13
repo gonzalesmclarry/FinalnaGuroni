@@ -1,25 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, Modal, FlatList, Image, Platform, GestureResponderEvent } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  TextInput, 
+  Animated, 
+  Modal, 
+  FlatList, 
+  Platform, 
+  GestureResponderEvent,
+  TouchableWithoutFeedback,
+  Keyboard
+} from 'react-native';
 import styles from '../styles/addreminderstyles';
-import { MaterialIcons } from '@expo/vector-icons';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay } from 'date-fns';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Audio } from 'expo-av';
 import { addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { Alert } from 'react-native';
-
-interface Reminder {
-  categoryID: string;
-  createdAt: string;
-  date: string;
-  reminderID: string;
-  reminderOn: string;
-  sound: string;
-  time: string;
-  title: string;
-  userID: string;
-}
 
 interface AddReminderProps {
   isExpanded: boolean;
@@ -27,27 +26,45 @@ interface AddReminderProps {
 }
 
 const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
+  // Animation state
   const [slideAnim] = useState(new Animated.Value(0));
+  
+  // Modal visibility states
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('');
   const [isCreateCategoryModalVisible, setIsCreateCategoryModalVisible] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
   const [isCalendarModalVisible, setIsCalendarModalVisible] = useState(false);
+  const [isTimeModalVisible, setIsTimeModalVisible] = useState(false);
+  
+  // Form values
+  const [reminderTitle, setReminderTitle] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const maxDate = new Date(2026, 11, 31); // December 31, 2026
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [time, setTime] = useState(new Date());
-  const [isTimeModalVisible, setIsTimeModalVisible] = useState(false);
-  const [hour, setHour] = useState('00');
+  const [selectedSound, setSelectedSound] = useState('Default');
+  
+  // Time picker values
+  const [hour, setHour] = useState('12');
   const [minute, setMinute] = useState('00');
   const [isPM, setIsPM] = useState(false);
-  const [selectedSound, setSelectedSound] = useState('Default');
-  const [showSoundOptions, setShowSoundOptions] = useState(false);
-  const [reminderTitle, setReminderTitle] = useState('');
+  const [time, setTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  
+  // Calendar values
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const maxDate = new Date(2026, 11, 31); // December 31, 2026
+  
+  // Categories 
   const [categories, setCategories] = useState<string[]>(['Work', 'Birthday', 'Occasion', 'Special']);
-
+  
+  // Category icons mapping
+  const categoryIcons: Record<string, string> = {
+    'Work': 'briefcase',
+    'Birthday': 'gift',
+    'Occasion': 'calendar',
+    'Special': 'star',
+    'default': 'bookmark'
+  };
 
   // Fetch categories from Firestore on component mount
   useEffect(() => {
@@ -61,7 +78,11 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
         const querySnapshot = await getDocs(q);
 
         const fetchedCategories = querySnapshot.docs.map(doc => doc.data().name);
-        setCategories(prevCategories => [...prevCategories, ...fetchedCategories]);
+        
+        // Only add unique categories
+        const uniqueCategories = [...new Set([...categories, ...fetchedCategories])];
+        setCategories(uniqueCategories);
+        
         console.log('Fetched Categories:', fetchedCategories);
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -69,8 +90,9 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
     };
 
     fetchCategories();
-  }, []); // Empty dependency array to run only on mount
+  }, []);
 
+  // Toggle reminder panel with animation
   const toggleReminder = () => {
     const toValue = isExpanded ? 0 : 1;
     
@@ -83,32 +105,47 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
     setIsExpanded(!isExpanded);
   };
 
+  // Toggle modals
   const toggleCategoryModal = () => {
     setIsCategoryModalVisible(!isCategoryModalVisible);
   };
 
   const toggleCreateCategoryModal = () => {
     setIsCreateCategoryModalVisible(!isCreateCategoryModalVisible);
+    if (isCategoryModalVisible) {
+      setIsCategoryModalVisible(false);
+    }
   };
-
-  const handleCategorySelect = (category: { id: string, name: string }) => {
-    setSelectedCategory(category.name);
-    setIsCategoryModalVisible(false);
-  };
-
-  const renderCategoryItem = ({ item }: { item: string }) => (
-    <TouchableOpacity
-      style={styles.categoryItem}
-      onPress={() => handleCategorySelect({ id: item, name: item })}
-    >
-      <Text style={styles.categoryItemText}>{item}</Text>
-    </TouchableOpacity>
-  );
 
   const toggleCalendarModal = () => {
     setIsCalendarModalVisible(!isCalendarModalVisible);
   };
 
+  // Handle category selection
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+    setIsCategoryModalVisible(false);
+  };
+
+  // Render category item in FlatList
+  const renderCategoryItem = ({ item }: { item: string }) => (
+    <TouchableOpacity
+      style={styles.categoryItem}
+      onPress={() => handleCategorySelect(item)}
+    >
+      <View style={styles.rowCenter}>
+        <Ionicons 
+          name={(categoryIcons[item] as any) || categoryIcons.default} 
+          size={22} 
+          color="#0B6477" 
+          style={styles.iconContainer} 
+        />
+        <Text style={styles.categoryItemText}>{item}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  // Generate calendar dates for current month
   const generateCalendarDates = () => {
     const start = startOfMonth(currentDate);
     const end = endOfMonth(currentDate);
@@ -130,9 +167,13 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
       );
     }
 
+    const today = new Date();
+
     // Add current month's dates
     days.forEach((day) => {
-      const isToday = new Date().toDateString() === day.toDateString();
+      const isToday = isSameDay(today, day);
+      const isSelected = selectedDate === format(day, 'yyyy-MM-dd');
+      
       dates.push(
         <TouchableOpacity 
           key={day.toString()} 
@@ -142,7 +183,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
           <Text style={[
             styles.dateText,
             isToday && styles.todayText,
-            selectedDate === format(day, 'yyyy-MM-dd') && styles.selectedDateText
+            isSelected && styles.selectedDateText
           ]}>
             {format(day, 'd')}
           </Text>
@@ -153,6 +194,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
     return dates;
   };
 
+  // Calendar navigation
   const handlePrevMonth = () => {
     setCurrentDate(prev => subMonths(prev, 1));
   };
@@ -164,102 +206,28 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
     }
   };
 
+  // Handle time change from DateTimePicker
   const handleTimeChange = (event: any, selectedTime?: Date) => {
     setShowTimePicker(Platform.OS === 'ios');
     if (selectedTime) {
       setTime(selectedTime);
-      setSelectedTime(format(selectedTime, 'HH:mm'));
+      setSelectedTime(format(selectedTime, 'h:mm a'));
     }
   };
 
-  const TimePickerModal = () => (
-    <Modal
-      visible={isTimeModalVisible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={() => setIsTimeModalVisible(false)}
-    >
-      <View style={styles.timeModalContainer}>
-        <View style={styles.timeModalContent}>
-          <View style={styles.timeModalHeader}>
-            <Text style={styles.timeModalTitle}>Set Time</Text>
-            <TouchableOpacity 
-              style={styles.timeModalClose}
-              onPress={() => setIsTimeModalVisible(false)}
-            >
-              <Text style={styles.closeIcon}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.timeInputContainer}>
-            <View style={styles.timeInputGroup}>
-              <TextInput
-                style={styles.timeInput}
-                value={hour}
-                onChangeText={setHour}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-              <Text style={styles.timeLabel}>Hour</Text>
-            </View>
-            
-            <Text style={styles.timeColon}>:</Text>
-            
-            <View style={styles.timeInputGroup}>
-              <TextInput
-                style={styles.timeInput}
-                value={minute}
-                onChangeText={setMinute}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-              <Text style={styles.timeLabel}>Minute</Text>
-            </View>
-
-            <View style={styles.amPmContainer}>
-              <TouchableOpacity 
-                style={[styles.amPmButton, !isPM && styles.amPmButtonActive]}
-                onPress={() => setIsPM(false)}
-              >
-                <Text style={[styles.amPmText, !isPM && styles.amPmTextActive]}>Am</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.amPmButton, isPM && styles.amPmButtonActive]}
-                onPress={() => setIsPM(true)}
-              >
-                <Text style={[styles.amPmText, isPM && styles.amPmTextActive]}>Pm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity 
-            style={styles.timeDoneButton}
-            onPress={() => {
-              setSelectedTime(`${hour}:${minute} ${isPM ? 'PM' : 'AM'}`);
-              setIsTimeModalVisible(false);
-            }}
-          >
-            <Text style={styles.timeDoneText}>Done</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-
-  
-
-  const handleSaveReminder = async () => {
+  // Validate reminder data
+  const validateAndSaveReminder = async () => {
     try {
       const currentUser = auth.currentUser;
       
       if (!currentUser) {
         Alert.alert('Error', 'Please login first');
-        return;
+        return null;
       }
 
       if (!reminderTitle) {
         Alert.alert('Error', 'Please enter a reminder title');
-        return;
+        return null;
       }
 
       // Check if reminder title already exists for this user
@@ -273,27 +241,43 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         Alert.alert('Error', 'A reminder with this title already exists');
-        return;
+        return null;
       }
 
       // Create reminder data object
       const reminderData = {
         categoryID: selectedCategory || 'default',
-        date: selectedDate,
+        date: selectedDate || format(new Date(), 'yyyy-MM-dd'),
         reminderID: Math.random().toString(36).substr(2, 9),
-        reminderOn: "0", // Set to "0" since we are not using the reminder modal
-        sound: selectedSound || "50",
-        time: selectedTime,
+        reminderOn: "0", // Default setting
+        sound: selectedSound || "Default",
+        time: selectedTime || format(new Date(), 'h:mm a'),
         title: reminderTitle,
         userID: currentUser.uid,
         createdAt: new Date().toISOString()
       };
 
+      return reminderData;
+    } catch (error) {
+      console.error('Error validating reminder:', error);
+      Alert.alert('Error', 'Failed to validate reminder. Please try again.');
+      return null;
+    }
+  };
+
+  // Save reminder to Firestore
+  const handleSaveReminder = async () => {
+    const reminderData = await validateAndSaveReminder();
+    
+    if (!reminderData) return;
+    
+    try {
       // Add document to reminders collection
+      const remindersRef = collection(db, 'reminders');
       await addDoc(remindersRef, reminderData);
 
-      console.log('Reminder saved');
-      setIsExpanded(false); // Close the reminder screen
+      Alert.alert('Success', 'Reminder saved successfully!');
+      
       // Reset form fields
       setReminderTitle('');
       setSelectedCategory('');
@@ -308,6 +292,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
     }
   };
 
+  // Create new category in Firestore
   const handleCreateCategory = async (event: GestureResponderEvent): Promise<void> => {
     try {
       const currentUser = auth.currentUser;
@@ -319,6 +304,12 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
 
       if (!newCategoryName) {
         Alert.alert('Error', 'Please enter a category name');
+        return;
+      }
+
+      // Check if category already exists
+      if (categories.includes(newCategoryName)) {
+        Alert.alert('Error', 'This category already exists');
         return;
       }
 
@@ -348,10 +339,107 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
     }
   };
 
+  // Time Picker Modal Component
+  const TimePickerModal = () => (
+    <Modal
+      visible={isTimeModalVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setIsTimeModalVisible(false)}
+    >
+      <TouchableWithoutFeedback onPress={() => setIsTimeModalVisible(false)}>
+        <View style={styles.timeModalContainer}>
+          <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
+            <View style={styles.timeModalContent}>
+              <View style={styles.timeModalHeader}>
+                <Text style={styles.timeModalTitle}>Set Time</Text>
+                <TouchableOpacity 
+                  style={styles.timeModalClose}
+                  onPress={() => setIsTimeModalVisible(false)}
+                >
+                  <Text style={styles.closeIcon}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.timeInputContainer}>
+                <View style={styles.timeInputGroup}>
+                  <TextInput
+                    style={styles.timeInput}
+                    value={hour}
+                    onChangeText={(text) => {
+                      const numValue = parseInt(text);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 12) {
+                        setHour(text);
+                      } else if (text === '') {
+                        setHour('');
+                      }
+                    }}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                  <Text style={styles.timeLabel}>Hour</Text>
+                </View>
+                
+                <Text style={styles.timeColon}>:</Text>
+                
+                <View style={styles.timeInputGroup}>
+                  <TextInput
+                    style={styles.timeInput}
+                    value={minute}
+                    onChangeText={(text) => {
+                      const numValue = parseInt(text);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 59) {
+                        setMinute(text.padStart(2, '0'));
+                      } else if (text === '') {
+                        setMinute('');
+                      }
+                    }}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                  <Text style={styles.timeLabel}>Minute</Text>
+                </View>
+
+                <View style={styles.amPmContainer}>
+                  <TouchableOpacity 
+                    style={[styles.amPmButton, !isPM && styles.amPmButtonActive]}
+                    onPress={() => setIsPM(false)}
+                  >
+                    <Text style={[styles.amPmText, !isPM && styles.amPmTextActive]}>AM</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.amPmButton, isPM && styles.amPmButtonActive]}
+                    onPress={() => setIsPM(true)}
+                  >
+                    <Text style={[styles.amPmText, isPM && styles.amPmTextActive]}>PM</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.timeDoneButton}
+                onPress={() => {
+                  const formattedHour = hour || '12';
+                  const formattedMinute = minute || '00';
+                  setSelectedTime(`${formattedHour}:${formattedMinute} ${isPM ? 'PM' : 'AM'}`);
+                  setIsTimeModalVisible(false);
+                }}
+              >
+                <Text style={styles.timeDoneText}>Set Time</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+
   return (
     <>
+      {/* Overlay when reminder is expanded */}
       {isExpanded && <View style={styles.overlay} />}
       
+      {/* Main Reminder Card */}
       <Animated.View
         style={[
           styles.reminderCard,
@@ -368,10 +456,11 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
         ]}
       >
         <TouchableOpacity 
-          style={styles.closeButton}
-          onPress={toggleReminder}
-        >
-          <MaterialIcons name="close" size={24} color="#333" />
+          >
+        <Text style={styles.closeButtonText} onPress={toggleReminder}>
+          <Ionicons name="close" size={24} color="#333" />
+        </Text>
+          
         </TouchableOpacity>
 
         <TextInput
@@ -381,6 +470,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
           value={reminderTitle}
           onChangeText={setReminderTitle}
         />
+        
         <View style={styles.categoryRow}>
           <TouchableOpacity 
             style={styles.categoryButton}
@@ -406,6 +496,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
         </TouchableOpacity>
       </Animated.View>
 
+      {/* Category Selection Modal */}
       <Modal
         visible={isCategoryModalVisible}
         transparent={true}
@@ -422,6 +513,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
             onPress={(e) => e.stopPropagation()}
             style={styles.modalContent}
           >
+            <Text style={styles.modalTitle}>Select Category</Text>
             <FlatList
               data={categories}
               renderItem={renderCategoryItem}
@@ -441,6 +533,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Create Category Modal */}
       <Modal
         visible={isCreateCategoryModalVisible}
         transparent={true}
@@ -455,7 +548,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
           <TouchableOpacity 
             activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
-            style={[styles.createCategoryModalContent, { backgroundColor: '#fff' }]}
+            style={styles.createCategoryModalContent}
           >
             <TouchableOpacity 
               style={styles.closeButtonContainer}
@@ -471,6 +564,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
               value={newCategoryName}
               onChangeText={setNewCategoryName}
               placeholder="Enter category name"
+              placeholderTextColor="#666"
             />
             
             <TouchableOpacity 
@@ -483,6 +577,7 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Calendar Modal */}
       <Modal
         visible={isCalendarModalVisible}
         transparent={true}
@@ -523,17 +618,14 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
               <View style={styles.inputRow}>
                 <MaterialIcons name="access-time" size={20} color="#666" />
                 <TouchableOpacity 
-                  onPress={() => {
-                    console.log('Opening time modal');
-                    setIsTimeModalVisible(true);
-                  }}
+                  onPress={() => setIsTimeModalVisible(true)}
+                  style={{flex: 1}}
                 >
                   <Text style={styles.input}>
-                    {selectedTime || 'Time'}
+                    {selectedTime || 'Select Time'}
                   </Text>
                 </TouchableOpacity>
               </View>
-              {/* Removed reminder input section */}
             </View>
 
             {/* Done Button */}
@@ -547,30 +639,31 @@ const AddReminder = ({ isExpanded, setIsExpanded }: AddReminderProps) => {
         </View>
       </Modal>
 
+      {/* Native date time picker for iOS */}
       {showTimePicker && (
         <DateTimePicker
           value={time}
           mode="time"
-          is24Hour={true}
+          is24Hour={false}
           display="default"
           onChange={handleTimeChange}
         />
       )}
 
+      {/* Add Button (Plus Button) when not expanded */}
       {!isExpanded && (
-        <>
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={toggleReminder}
-          >
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
-        </>
+        <TouchableOpacity 
+          style={styles.addButton}
+          onPress={toggleReminder}
+        >
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
       )}
 
+      {/* Custom Time Picker Modal */}
       <TimePickerModal />
     </>
   );
 };
 
-export default AddReminder; 
+export default AddReminder;
